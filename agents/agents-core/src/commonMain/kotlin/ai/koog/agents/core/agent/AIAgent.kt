@@ -5,6 +5,8 @@ package ai.koog.agents.core.agent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.context.AIAgentContext
 import ai.koog.agents.core.agent.session.AIAgentRunSession
+import ai.koog.agents.core.dsl.builder.AIAgentNodeDelegate
+import ai.koog.serialization.typeToken
 import ai.koog.utils.io.Closeable
 import kotlin.jvm.JvmStatic
 
@@ -54,4 +56,16 @@ public expect abstract class AIAgent<Input, Output>() : Closeable {
         @JvmStatic
         public fun builder(): AIAgentBuilder
     }
+}
+
+/**
+ * Generates a node that runs the [AIAgent].
+ */
+public inline fun <reified Input, reified Output> AIAgent<Input, Output>.asNode(name: String? = null): AIAgentNodeDelegate<Input, Output> {
+    return AIAgentNodeDelegate(
+        name = name,
+        inputType = typeToken<Input>(),
+        outputType = typeToken<Output>(),
+        execute = { input -> run(input) }
+    )
 }
