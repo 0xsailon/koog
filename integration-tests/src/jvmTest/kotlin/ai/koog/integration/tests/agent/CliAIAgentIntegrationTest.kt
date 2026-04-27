@@ -12,7 +12,6 @@ import ai.koog.cli.transport.CliTransport
 import ai.koog.cli.transport.DockerCliTransport
 import ai.koog.integration.tests.utils.TestCredentials.readTestAnthropicKeyFromEnv
 import ai.koog.integration.tests.utils.TestCredentials.readTestOpenAIKeyFromEnv
-import ai.koog.integration.tests.utils.annotations.Retry
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.executor.ollama.client.OllamaModels
 import ai.koog.serialization.kotlinx.KotlinxSerializer
@@ -57,7 +56,7 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     data class StructuredResult(val message: String)
 
     private val cliSystemPrompt = "please follow the instructions of the user without asking for confirmations. do not call any tools"
-    
+
     private val timeout = 180.seconds
 
     @Test
