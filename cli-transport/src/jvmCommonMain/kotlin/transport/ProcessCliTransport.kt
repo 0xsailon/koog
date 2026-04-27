@@ -14,7 +14,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Base class for transports that execute a local [Process].
@@ -134,7 +134,7 @@ public abstract class ProcessCliTransport : CliTransport {
                 .directory(File(workspace))
                 .start()
 
-            val timeout = timeout ?: 1.seconds
+            val timeout = timeout ?: 1.minutes
             val finished = process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
 
             if (!finished) {
