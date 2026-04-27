@@ -51,7 +51,18 @@ public class DockerCliTransport @JvmOverloads constructor(
     private val isWindows = System.getProperty("os.name").lowercase().contains("win")
 
     override suspend fun checkAvailability(binaryPath: String, workspace: String, timeout: Duration?): CliAvailability {
-        val dockerAvailability = checkAvailability(listOf(dockerPath, "--version"), workspace, timeout)
+        val dockerAvailability = checkAvailability(
+            buildList {
+                if (isWindows) {
+                    add("cmd")
+                    add("/c")
+                }
+                add(dockerPath)
+                add("--version")
+            },
+            workspace,
+            timeout
+        )
         if (dockerAvailability is CliUnavailable) {
             return CliUnavailable("Docker is not available: ${dockerAvailability.reason}", dockerAvailability.cause)
         }
