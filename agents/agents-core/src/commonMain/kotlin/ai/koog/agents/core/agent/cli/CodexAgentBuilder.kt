@@ -11,6 +11,8 @@ import kotlin.time.Duration
  */
 public class CodexAgentBuilder internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -23,7 +25,7 @@ public class CodexAgentBuilder internal constructor(
     askForApproval: CodexApprovalPolicy? = null,
     additionalFlags: List<String> = emptyList(),
 ) : CodexAgentBuilderBase<String, CodexAgentBuilder>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, sandbox, askForApproval, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, sandbox, askForApproval, additionalFlags
 ) {
     override fun self(): CodexAgentBuilder = this
 
@@ -34,6 +36,8 @@ public class CodexAgentBuilder internal constructor(
         generateRequest: CliConfig.GenerateRequest<Input>
     ): CodexAgentGenericInputBuilder<Input> = CodexAgentGenericInputBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -58,8 +62,8 @@ public class CodexAgentBuilder internal constructor(
         return CliAIAgent.codex(
             transport = finalTransport,
             apiKey = apiKey,
-            systemPrompt = null,
-            llModel = null,
+            systemPrompt = systemPrompt,
+            llModel = llModel,
             sandbox = sandbox,
             askForApproval = askForApproval,
             additionalFlags = additionalFlags,
@@ -77,6 +81,8 @@ public class CodexAgentBuilder internal constructor(
  */
 public class CodexAgentGenericInputBuilder<Input> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -90,7 +96,7 @@ public class CodexAgentGenericInputBuilder<Input> internal constructor(
     additionalFlags: List<String>,
     internal val generateRequest: CliConfig.GenerateRequest<Input>,
 ) : CodexAgentBuilderBase<Input, CodexAgentGenericInputBuilder<Input>>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, sandbox, askForApproval, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, sandbox, askForApproval, additionalFlags
 ) {
     override fun self(): CodexAgentGenericInputBuilder<Input> = this
 
@@ -104,8 +110,10 @@ public class CodexAgentGenericInputBuilder<Input> internal constructor(
         return CliAIAgent.codex(
             transport = finalTransport,
             apiKey = apiKey,
-            systemPrompt = null,
-            llModel = null,
+            binaryPath = binaryPath,
+            name = name,
+            systemPrompt = systemPrompt,
+            llModel = llModel,
             sandbox = sandbox,
             askForApproval = askForApproval,
             additionalFlags = additionalFlags,

@@ -57,7 +57,6 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
     }
 
     @Test
-    @Retry
     public void integration_testCodex() {
         var agent = CliAIAgent.builder(CliTransport.getDefault())
             .llModel(OpenAIModels.Chat.GPT4o)
@@ -70,7 +69,6 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
     }
 
     @Test
-    @Retry
     public void integration_testClaude() {
         var agent = CliAIAgent.builder(CliTransport.getDefault())
             .llModel(AnthropicModels.Sonnet_4_5)
@@ -83,7 +81,6 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
     }
 
     @Test
-    @Retry
     public void integration_testClaudeStructuredOutput() {
         var agent = CliAIAgent.builder(CliTransport.getDefault())
             .llModel(AnthropicModels.Sonnet_4_5)
@@ -100,7 +97,6 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
     }
 
     @Test
-    @Retry
     public void integration_testClaudeCustomInput() {
         var agent = CliAIAgent.builder(CliTransport.getDefault())
             .llModel(AnthropicModels.Sonnet_4_5)
@@ -115,7 +111,6 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
     }
 
     @Test
-    @Retry
     public void integration_testClaudeCustomInputStructuredOutput() {
         var agent = CliAIAgent.builder(CliTransport.getDefault())
             .llModel(AnthropicModels.Sonnet_4_5)
@@ -133,7 +128,6 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
     }
 
     @Test
-    @Retry
     public void integration_testCodexCustomInput() {
         var agent = CliAIAgent.builder(CliTransport.getDefault())
             .llModel(OpenAIModels.Chat.GPT4o)

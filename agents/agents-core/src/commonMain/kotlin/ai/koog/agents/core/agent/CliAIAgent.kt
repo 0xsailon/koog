@@ -204,6 +204,8 @@ public class CliAIAgent<Input, Output> internal constructor(
          *
          * @param transport The transport used to execute cli commands.
          * @param apiKey The API key for the Claude code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
          * @param permissionMode The [ClaudePermissionMode] mode for the agent.
@@ -219,6 +221,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         public fun claude(
             transport: CliTransport,
             apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             permissionMode: ClaudePermissionMode? = null,
@@ -231,6 +235,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         ): CliAIAgent<String, CliAIAgentResponse> = claude<String>(
             transport = transport,
             apiKey = apiKey,
+            binaryPath = binaryPath,
+            name = name,
             systemPrompt = systemPrompt,
             llModel = llModel,
             permissionMode = permissionMode,
@@ -248,6 +254,8 @@ public class CliAIAgent<Input, Output> internal constructor(
          *
          * @param transport The transport used to execute cli commands.
          * @param apiKey The API key for the Claude code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
          * @param permissionMode The [ClaudePermissionMode] mode for the agent.
@@ -264,6 +272,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         public fun <Input> claude(
             transport: CliTransport,
             apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             permissionMode: ClaudePermissionMode? = null,
@@ -279,6 +289,8 @@ public class CliAIAgent<Input, Output> internal constructor(
                 config = ClaudeCliConfig(
                     transport = transport,
                     apiKey = apiKey,
+                    binaryPath = binaryPath,
+                    name = name,
                     permissionMode = permissionMode,
                     additionalFlags = additionalFlags,
                     workspace = workspace,
@@ -301,8 +313,10 @@ public class CliAIAgent<Input, Output> internal constructor(
          * Creates a new instance of [CliAIAgent] in structured output mode.
          *
          * @param transport The transport used to execute cli commands.
-         * @param apiKey The API key for the Claude code.
          * @param structure [Structure] defining the structured output format.
+         * @param apiKey The API key for the Claude code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
          * @param permissionMode The [ClaudePermissionMode] mode for the agent.
@@ -318,8 +332,10 @@ public class CliAIAgent<Input, Output> internal constructor(
         @JvmOverloads
         public fun <Input, Output> claude(
             transport: CliTransport,
-            apiKey: String? = null,
             structure: Structure<Output, LLMParams.Schema.JSON>,
+            apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             permissionMode: ClaudePermissionMode? = null,
@@ -335,6 +351,8 @@ public class CliAIAgent<Input, Output> internal constructor(
                 config = ClaudeCliStructuredConfig(
                     transport = transport,
                     apiKey = apiKey,
+                    binaryPath = binaryPath,
+                    name = name,
                     structure = structure,
                     permissionMode = permissionMode,
                     additionalFlags = additionalFlags,
@@ -359,6 +377,8 @@ public class CliAIAgent<Input, Output> internal constructor(
          *
          * @param transport The transport used to execute cli commands.
          * @param apiKey The API key for the Claude code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param Output The type of the structured output.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
@@ -375,6 +395,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         public inline fun <Input, reified Output> claude(
             transport: CliTransport,
             apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             permissionMode: ClaudePermissionMode? = null,
@@ -388,6 +410,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         ): CliAIAgent<Input, CliAgentStructuredResponse<Output>> = claude(
             transport = transport,
             apiKey = apiKey,
+            binaryPath = binaryPath,
+            name = name,
             structure = JsonStructure.create(serializer = serializer<Output>()),
             systemPrompt = systemPrompt,
             llModel = llModel,
@@ -405,8 +429,10 @@ public class CliAIAgent<Input, Output> internal constructor(
          * Creates a new instance of [CliAIAgent] in structured output mode.
          *
          * @param transport The transport used to execute cli commands.
-         * @param apiKey The API key for the Claude code.
          * @param Output The type of the structured output.
+         * @param apiKey The API key for the Claude code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
          * @param permissionMode The [ClaudePermissionMode] mode for the agent.
@@ -423,8 +449,10 @@ public class CliAIAgent<Input, Output> internal constructor(
         @OptIn(InternalSerializationApi::class)
         public fun <Input, Output : Any> claude(
             transport: CliTransport,
-            apiKey: String? = null,
             outputClass: KClass<Output>,
+            apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             permissionMode: ClaudePermissionMode? = null,
@@ -440,6 +468,8 @@ public class CliAIAgent<Input, Output> internal constructor(
             return claude(
                 transport = transport,
                 apiKey = apiKey,
+                binaryPath = binaryPath,
+                name = name,
                 structure = JsonStructure.create(serializer = serializer),
                 systemPrompt = systemPrompt,
                 llModel = llModel,
@@ -461,6 +491,8 @@ public class CliAIAgent<Input, Output> internal constructor(
          *
          * @param transport The transport used to execute cli commands.
          * @param apiKey The API key for the Codex code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
          * @param sandbox The [CodexSandboxMode] for the agent.
@@ -477,6 +509,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         public fun codex(
             transport: CliTransport,
             apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             sandbox: CodexSandboxMode? = null,
@@ -490,6 +524,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         ): CliAIAgent<String, CliAIAgentResponse> = codex(
             transport = transport,
             apiKey = apiKey,
+            binaryPath = binaryPath,
+            name = name,
             systemPrompt = systemPrompt,
             llModel = llModel,
             sandbox = sandbox,
@@ -508,6 +544,8 @@ public class CliAIAgent<Input, Output> internal constructor(
          *
          * @param transport The transport used to execute cli commands.
          * @param apiKey The API key for the Codex code.
+         * @param binaryPath The path to the binary.
+         * @param name The name of the cli strategy.
          * @param systemPrompt The system prompt for the agent.
          * @param llModel The LLM model to be used for the agent.
          * @param sandbox The [CodexSandboxMode] for the agent.
@@ -525,6 +563,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         public fun <Input> codex(
             transport: CliTransport,
             apiKey: String? = null,
+            binaryPath: String? = null,
+            name: String? = null,
             systemPrompt: String? = null,
             llModel: LLModel? = null,
             sandbox: CodexSandboxMode? = null,
@@ -541,6 +581,8 @@ public class CliAIAgent<Input, Output> internal constructor(
                 config = CodexCliConfig(
                     transport = transport,
                     apiKey = apiKey,
+                    binaryPath = binaryPath,
+                    name = name,
                     sandbox = sandbox,
                     askForApproval = askForApproval,
                     additionalFlags = additionalFlags,
@@ -561,7 +603,7 @@ public class CliAIAgent<Input, Output> internal constructor(
         }
 
         /**
-         * Creates a new instance of [CliAIAgent] using custom configuration of the cli.
+         * Creates a new instance of [CliAIAgent] using provided configuration of the cli.
          *
          * @param cliConfig The configuration for the cli.
          * @param systemPrompt The system prompt for the agent.
@@ -570,7 +612,7 @@ public class CliAIAgent<Input, Output> internal constructor(
          * @param clock The clock used to calculate message timestamps.
          * @param installFeatures Lambda for installing additional features.
          */
-        public fun <Input, Output> custom(
+        public fun <Input, Output> withCliConfig(
             cliConfig: CliConfig<Input, Output>,
             systemPrompt: String? = null,
             llModel: LLModel? = null,

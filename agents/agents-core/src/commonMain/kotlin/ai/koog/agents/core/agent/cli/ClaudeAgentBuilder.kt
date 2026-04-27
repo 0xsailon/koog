@@ -13,6 +13,8 @@ import kotlin.time.Duration
  */
 public expect class ClaudeAgentBuilder internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -32,6 +34,8 @@ public expect class ClaudeAgentBuilder internal constructor(
  */
 public expect class ClaudeAgentGenericInputBuilder<Input> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -52,6 +56,8 @@ public expect class ClaudeAgentGenericInputBuilder<Input> internal constructor(
  */
 public class ClaudeAgentStructuredOutputBuilder<Output> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -64,7 +70,7 @@ public class ClaudeAgentStructuredOutputBuilder<Output> internal constructor(
     additionalFlags: List<String>,
     internal val structure: Structure<Output, LLMParams.Schema.JSON>,
 ) : ClaudeAgentBuilderBase<String, CliAgentStructuredResponse<Output>, ClaudeAgentStructuredOutputBuilder<Output>>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
 ) {
     override fun self(): ClaudeAgentStructuredOutputBuilder<Output> = this
 
@@ -79,6 +85,8 @@ public class ClaudeAgentStructuredOutputBuilder<Output> internal constructor(
         generateRequest: CliConfig.GenerateRequest<Input>
     ): ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output> = ClaudeAgentGenericInputStructuredOutputBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -102,6 +110,8 @@ public class ClaudeAgentStructuredOutputBuilder<Output> internal constructor(
         return CliAIAgent.claude(
             transport = transport,
             apiKey = apiKey,
+            binaryPath = binaryPath,
+            name = name,
             structure = structure,
             systemPrompt = systemPrompt,
             llModel = llModel,
@@ -122,6 +132,8 @@ public class ClaudeAgentStructuredOutputBuilder<Output> internal constructor(
  */
 public class ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -135,7 +147,7 @@ public class ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output> inter
     internal val generateRequest: CliConfig.GenerateRequest<Input>,
     internal val structure: Structure<Output, LLMParams.Schema.JSON>,
 ) : ClaudeAgentBuilderBase<Input, CliAgentStructuredResponse<Output>, ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output>>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
 ) {
     override fun self(): ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output> = this
 
@@ -148,6 +160,8 @@ public class ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output> inter
         return CliAIAgent.claude(
             transport = transport,
             apiKey = apiKey,
+            binaryPath = binaryPath,
+            name = name,
             structure = structure,
             systemPrompt = systemPrompt,
             llModel = llModel,

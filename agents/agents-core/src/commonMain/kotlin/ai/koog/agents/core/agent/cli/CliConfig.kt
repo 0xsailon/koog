@@ -4,6 +4,7 @@ import ai.koog.cli.transport.CliEvent
 import ai.koog.cli.transport.CliTransport
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import io.github.oshai.kotlinlogging.KLogger
 import kotlin.time.Duration
 
 /**
@@ -12,6 +13,9 @@ import kotlin.time.Duration
 public interface CliConfig<Input, Output> {
     /** CLI transport for executing commands. */
     public val transport: CliTransport
+
+    /** Name of the CLI tool. */
+    public val name: String
 
     /** Path to the binary of the CLI tool. */
     public val binaryPath: String
@@ -32,7 +36,7 @@ public interface CliConfig<Input, Output> {
     public fun generateRequest(input: Input): String
 
     /** Extracts the output from CLI event lines. */
-    public fun extractOutput(events: List<CliEvent>): Output
+    public fun extractOutput(events: List<CliEvent>, logger: KLogger): Output
 
     /**
      * Represents a function that generates a request string from context and input.
@@ -51,6 +55,6 @@ public interface CliConfig<Input, Output> {
         /**
          * Extracts the output from CLI event lines.
          */
-        public fun extractOutput(events: List<CliEvent>): Output
+        public fun extractOutput(events: List<CliEvent>, logger: KLogger): Output
     }
 }

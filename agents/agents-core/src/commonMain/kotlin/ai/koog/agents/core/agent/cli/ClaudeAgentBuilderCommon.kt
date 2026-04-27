@@ -17,6 +17,8 @@ import kotlin.time.Duration
  */
 public abstract class ClaudeAgentBuilderCommon<Self : ClaudeAgentBuilderCommon<Self>> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -28,7 +30,7 @@ public abstract class ClaudeAgentBuilderCommon<Self : ClaudeAgentBuilderCommon<S
     permissionMode: ClaudePermissionMode? = null,
     additionalFlags: List<String> = emptyList(),
 ) : ClaudeAgentBuilderBase<String, CliAIAgentResponse, Self>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
 ) {
     /**
      * Configures the agent to produce structured output using the specified output class.
@@ -55,6 +57,8 @@ public abstract class ClaudeAgentBuilderCommon<Self : ClaudeAgentBuilderCommon<S
         structure: Structure<Output, LLMParams.Schema.JSON>
     ): ClaudeAgentStructuredOutputBuilder<Output> = ClaudeAgentStructuredOutputBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -79,6 +83,8 @@ public abstract class ClaudeAgentBuilderCommon<Self : ClaudeAgentBuilderCommon<S
         generateRequest: CliConfig.GenerateRequest<Input>
     ): ClaudeAgentGenericInputBuilder<Input> = ClaudeAgentGenericInputBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -120,6 +126,8 @@ public abstract class ClaudeAgentBuilderCommon<Self : ClaudeAgentBuilderCommon<S
  */
 public abstract class ClaudeAgentGenericInputBuilderCommon<Input, Self : ClaudeAgentGenericInputBuilderCommon<Input, Self>> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -132,7 +140,7 @@ public abstract class ClaudeAgentGenericInputBuilderCommon<Input, Self : ClaudeA
     additionalFlags: List<String>,
     internal val generateRequest: CliConfig.GenerateRequest<Input>,
 ) : ClaudeAgentBuilderBase<Input, CliAIAgentResponse, Self>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
 ) {
     /**
      * Configures the agent to produce structured output using the specified output class.
@@ -159,6 +167,8 @@ public abstract class ClaudeAgentGenericInputBuilderCommon<Input, Self : ClaudeA
         structure: Structure<Output, LLMParams.Schema.JSON>
     ): ClaudeAgentGenericInputStructuredOutputBuilder<Input, Output> = ClaudeAgentGenericInputStructuredOutputBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -182,6 +192,8 @@ public abstract class ClaudeAgentGenericInputBuilderCommon<Input, Self : ClaudeA
         return CliAIAgent.claude<Input>(
             transport = transport,
             apiKey = apiKey,
+            binaryPath = binaryPath,
+            name = name,
             systemPrompt = systemPrompt,
             llModel = llModel,
             permissionMode = permissionMode,

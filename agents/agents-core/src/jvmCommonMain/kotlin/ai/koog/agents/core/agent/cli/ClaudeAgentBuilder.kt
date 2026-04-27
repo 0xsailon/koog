@@ -12,6 +12,8 @@ import kotlin.time.Duration
  */
 public actual class ClaudeAgentBuilder internal actual constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -23,7 +25,7 @@ public actual class ClaudeAgentBuilder internal actual constructor(
     permissionMode: ClaudePermissionMode?,
     additionalFlags: List<String>,
 ) : ClaudeAgentBuilderCommon<ClaudeAgentBuilder>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags
 ) {
     public actual override fun self(): ClaudeAgentBuilder = this
 
@@ -40,6 +42,8 @@ public actual class ClaudeAgentBuilder internal actual constructor(
  */
 public actual class ClaudeAgentGenericInputBuilder<Input> internal actual constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -52,7 +56,7 @@ public actual class ClaudeAgentGenericInputBuilder<Input> internal actual constr
     additionalFlags: List<String>,
     generateRequest: CliConfig.GenerateRequest<Input>,
 ) : ClaudeAgentGenericInputBuilderCommon<Input, ClaudeAgentGenericInputBuilder<Input>>(
-    transport, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags, generateRequest
+    transport, binaryPath, name, systemPrompt, llModel, workspace, timeout, id, clock, featureInstallers, apiKey, permissionMode, additionalFlags, generateRequest
 ) {
     public actual override fun self(): ClaudeAgentGenericInputBuilder<Input> = this
 

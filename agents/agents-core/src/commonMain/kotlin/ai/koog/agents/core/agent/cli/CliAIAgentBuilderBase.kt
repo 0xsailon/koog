@@ -12,6 +12,8 @@ import kotlin.time.Duration.Companion.minutes
  */
 public abstract class CliAIAgentBuilderBase<Self : CliAIAgentBuilderBase<Self>> internal constructor(
     protected val transport: CliTransport,
+    protected var binaryPath: String?,
+    protected var name: String?,
     protected var systemPrompt: String?,
     protected var llModel: LLModel?,
     protected var workspace: String,
@@ -20,9 +22,23 @@ public abstract class CliAIAgentBuilderBase<Self : CliAIAgentBuilderBase<Self>> 
     protected var clock: Clock,
     protected val featureInstallers: MutableList<CliAIAgent.FeatureContext.() -> Unit>,
 ) {
-    internal constructor(transport: CliTransport) : this(transport, null, null, ".", null, null, Clock.System, mutableListOf())
+    internal constructor(transport: CliTransport) : this(transport, null, null, null, null, ".", null, null, Clock.System, mutableListOf())
 
     protected abstract fun self(): Self
+
+    /**
+     * Sets the CLI binary path.
+     */
+    public fun binaryPath(binaryPath: String): Self = self().apply {
+        this.binaryPath = binaryPath
+    }
+
+    /**
+     * Sets the agent name.
+     */
+    public fun name(name: String): Self = self().apply {
+        this.name = name
+    }
 
     /**
      * Adds the system prompt.

@@ -11,6 +11,8 @@ import kotlin.time.Duration
  */
 public abstract class CodexAgentBuilderBase<Input, Self : CodexAgentBuilderBase<Input, Self>> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -24,6 +26,8 @@ public abstract class CodexAgentBuilderBase<Input, Self : CodexAgentBuilderBase<
     protected var additionalFlags: List<String> = emptyList(),
 ) : CliAIAgentBuilderBase<Self>(
     transport,
+    binaryPath,
+    name,
     systemPrompt,
     llModel,
     workspace,

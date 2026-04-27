@@ -37,7 +37,7 @@ public class AIAgentCliStrategy<Input, Output> internal constructor(
             .onEach { logEvent(it) }
             .toList()
 
-        val result = config.extractOutput(events.filterIsInstance<CliEvent.Line>())
+        val result = config.extractOutput(events.filterIsInstance<CliEvent.Line>(), logger)
 
         return result
     }

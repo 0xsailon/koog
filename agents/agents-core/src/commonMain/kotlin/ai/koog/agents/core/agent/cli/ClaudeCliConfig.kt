@@ -14,6 +14,7 @@ import ai.koog.prompt.message.Message
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.structure.Structure
 import ai.koog.prompt.structure.json.generator.JsonSchemaConsts
+import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -118,7 +119,7 @@ public object ClaudeCliHelper {
     /**
      * Extracts output from Claude CLI events.
      */
-    public fun extractOutput(events: List<CliEvent>): CliAIAgentResponse {
+    public fun extractOutput(events: List<CliEvent>, logger: KLogger): CliAIAgentResponse {
         val failedEvent = events.filterIsInstance<CliEvent.Failed>().firstOrNull()
         if (failedEvent != null) {
             return CliAIAgentResponse(
@@ -128,7 +129,7 @@ public object ClaudeCliHelper {
             )
         }
 
-        val jsonEvents = toJsonStdoutEvents(events)
+        val jsonEvents = toJsonStdoutEvents(events, logger)
 
         val resultEvent = jsonEvents
             .lastOrNull { it["type"]?.stringVal == "result" }
@@ -165,6 +166,7 @@ public object ClaudeCliHelper {
     public fun <T> extractStructuredOutput(
         events: List<CliEvent>,
         structure: Structure<T, *>,
+        logger: KLogger
     ): CliAgentStructuredResponse<T> {
         val failedEvent = events.filterIsInstance<CliEvent.Failed>().firstOrNull()
         if (failedEvent != null) {
@@ -178,8 +180,8 @@ public object ClaudeCliHelper {
             )
         }
 
-        val response = extractOutput(events)
-        val jsonEvents = toJsonStdoutEvents(events)
+        val response = extractOutput(events, logger)
+        val jsonEvents = toJsonStdoutEvents(events, logger)
         val resultString = jsonEvents
             .lastOrNull { it["type"]?.stringVal == "result" }
             ?.get("structured_output")
@@ -222,6 +224,8 @@ public object ClaudeCliHelper {
  * @param Output The type of structured output the agent produces.
  * @property transport The CLI transport used to execute commands.
  * @property apiKey The Anthropic API key, or null to use the ANTHROPIC_API_KEY environment variable.
+ * @property binaryPath The path to the Claude CLI executable, or null to use the default ("claude").
+ * @property name The name of the cli strategy, or null to use the default ("claude-code-structured").
  * @property structure The structure definition for parsing the output.
  * @property permissionMode The permission mode for Claude CLI execution.
  * @property additionalFlags Additional command-line flags to pass to Claude CLI.
@@ -231,6 +235,8 @@ public object ClaudeCliHelper {
 public class ClaudeCliStructuredConfig<Input, Output>(
     override val transport: CliTransport,
     public val apiKey: String? = null,
+    binaryPath: String? = null,
+    name: String? = null,
     public val structure: Structure<Output, LLMParams.Schema.JSON>,
     public val permissionMode: ClaudePermissionMode? = null,
     public val additionalFlags: List<String> = emptyList(),
@@ -238,7 +244,8 @@ public class ClaudeCliStructuredConfig<Input, Output>(
     override val timeout: Duration? = null,
     private val generateRequest: CliConfig.GenerateRequest<Input>
 ) : CliConfig<Input, CliAgentStructuredResponse<Output>> {
-    override val binaryPath: String = "claude"
+    override val binaryPath: String = binaryPath ?: "claude"
+    override val name: String = name ?: "claude-code-structured"
     override val env: Map<String, String> = ClaudeCliHelper.env(apiKey)
 
     override fun flags(model: LLModel, systemMessages: List<Message.System>): List<String> =
@@ -247,8 +254,8 @@ public class ClaudeCliStructuredConfig<Input, Output>(
     override fun generateRequest(input: Input): String =
         generateRequest.generateRequest(input)
 
-    override fun extractOutput(events: List<CliEvent>): CliAgentStructuredResponse<Output> =
-        ClaudeCliHelper.extractStructuredOutput(events, structure)
+    override fun extractOutput(events: List<CliEvent>, logger: KLogger): CliAgentStructuredResponse<Output> =
+        ClaudeCliHelper.extractStructuredOutput(events, structure, logger)
 }
 
 /**
@@ -257,6 +264,8 @@ public class ClaudeCliStructuredConfig<Input, Output>(
  * @param Input The type of input the agent accepts.
  * @property transport The CLI transport used to execute commands.
  * @property apiKey The Anthropic API key, or null to use the ANTHROPIC_API_KEY environment variable.
+ * @property binaryPath The path to the Claude CLI executable, or null to use the default.
+ * @property name The name of the cli strategy, or null to use the default.
  * @property permissionMode The permission mode for Claude CLI execution.
  * @property additionalFlags Additional command-line flags to pass to Claude CLI.
  * @property workspace The working directory for command execution.
@@ -265,13 +274,16 @@ public class ClaudeCliStructuredConfig<Input, Output>(
 public class ClaudeCliConfig<Input>(
     override val transport: CliTransport,
     public val apiKey: String? = null,
+    binaryPath: String? = null,
+    name: String? = null,
     public val permissionMode: ClaudePermissionMode? = null,
     public val additionalFlags: List<String> = emptyList(),
     override val workspace: String = ".",
     override val timeout: Duration? = null,
     private val generateRequest: CliConfig.GenerateRequest<Input>,
 ) : CliConfig<Input, CliAIAgentResponse> {
-    override val binaryPath: String = "claude"
+    override val binaryPath: String = binaryPath ?: "claude"
+    override val name: String = name ?: "claude-code"
     override val env: Map<String, String> = ClaudeCliHelper.env(apiKey)
 
     override fun flags(model: LLModel, systemMessages: List<Message.System>): List<String> =
@@ -280,6 +292,6 @@ public class ClaudeCliConfig<Input>(
     override fun generateRequest(input: Input): String =
         generateRequest.generateRequest(input)
 
-    override fun extractOutput(events: List<CliEvent>): CliAIAgentResponse =
-        ClaudeCliHelper.extractOutput(events)
+    override fun extractOutput(events: List<CliEvent>, logger: KLogger): CliAIAgentResponse =
+        ClaudeCliHelper.extractOutput(events, logger)
 }

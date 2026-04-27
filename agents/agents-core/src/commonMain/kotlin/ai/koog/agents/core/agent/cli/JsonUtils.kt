@@ -1,6 +1,8 @@
 package ai.koog.agents.core.agent.cli
 
+import ai.koog.agents.core.utils.runCatchingCancellable
 import ai.koog.cli.transport.CliEvent
+import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -24,13 +26,15 @@ public object JsonUtils {
     /**
      * Converts a list of agent events to a list of JSON objects from stdout
      */
-    public fun toJsonStdoutEvents(events: List<CliEvent>): List<JsonObject> =
+    public fun toJsonStdoutEvents(events: List<CliEvent>, logger: KLogger): List<JsonObject> =
         events
             .filterIsInstance<CliEvent.Line>()
-            .mapNotNull {
-                runCatching {
-                    json.decodeFromString<JsonObject>(it.content).jsonObject
-                }.getOrNull()
+            .mapNotNull { line ->
+                runCatchingCancellable {
+                    json.decodeFromString<JsonObject>(line.content).jsonObject
+                }
+                    .onFailure { logger.warn(it) { "Failed to parse cli event: ${line.content}" } }
+                    .getOrNull()
             }
 
     /**

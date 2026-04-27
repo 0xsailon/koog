@@ -14,13 +14,13 @@ class ProcessCliTransportTest {
 
     @Test
     fun testCheckAvailability() {
-        val availability = CliTransport.Default.checkAvailability("java", ".")
+        val availability = CliTransport.LocalProcess.checkAvailability("java", ".")
         availability.shouldBeInstanceOf<CliAvailable>()
     }
 
     @Test
     fun testExecuteEcho() = runTest {
-        val events = CliTransport.Default.execute(
+        val events = CliTransport.LocalProcess.execute(
             command = listOf("echo", "hello world"),
             workspace = "."
         ).toList()
@@ -41,7 +41,7 @@ class ProcessCliTransportTest {
     @Test
     fun testExecuteInvalidCommand() = runTest {
         assertThrows<Exception> {
-            val events = CliTransport.Default.execute(
+            val events = CliTransport.LocalProcess.execute(
                 command = listOf("non-existent-command-12345"),
                 workspace = "."
             ).toList()
@@ -63,7 +63,7 @@ class ProcessCliTransportTest {
             listOf("sh", "-c", "echo \$TEST_VAR")
         }
 
-        val events = CliTransport.Default.execute(
+        val events = CliTransport.LocalProcess.execute(
             command = command,
             workspace = ".",
             env = env
@@ -84,7 +84,7 @@ class ProcessCliTransportTest {
             listOf("sh", "-c", "echo 'error message' >&2")
         }
 
-        val events = CliTransport.Default.execute(
+        val events = CliTransport.LocalProcess.execute(
             command = command,
             workspace = "."
         ).toList()

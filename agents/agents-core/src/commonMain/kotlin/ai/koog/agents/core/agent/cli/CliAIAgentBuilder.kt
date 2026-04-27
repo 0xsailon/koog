@@ -15,6 +15,8 @@ public class CliAgentBuilder internal constructor(transport: CliTransport) : Cli
      */
     public fun claude(): ClaudeAgentBuilder = ClaudeAgentBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -29,6 +31,8 @@ public class CliAgentBuilder internal constructor(transport: CliTransport) : Cli
      */
     public fun codex(): CodexAgentBuilder = CodexAgentBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,
@@ -43,6 +47,8 @@ public class CliAgentBuilder internal constructor(transport: CliTransport) : Cli
      */
     public fun <Input, Output> custom(): CustomCliAgentBuilder<Input, Output> = CustomCliAgentBuilder(
         transport = transport,
+        binaryPath = binaryPath,
+        name = name,
         systemPrompt = systemPrompt,
         llModel = llModel,
         workspace = workspace,

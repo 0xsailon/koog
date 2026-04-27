@@ -57,10 +57,11 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     data class StructuredResult(val message: String)
 
     private val cliSystemPrompt = "please follow the instructions of the user without asking for confirmations. do not call any tools"
+    
+    private val timeout = 180.seconds
 
     @Test
-    @Retry
-    fun integration_testCodex() = runTest(timeout = 180.seconds) {
+    fun integration_testCodex() = runTest(timeout = timeout) {
         val agent = CliAIAgent.codex(
             systemPrompt = cliSystemPrompt,
             apiKey = readTestOpenAIKeyFromEnv(),
@@ -71,13 +72,12 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     }
 
     @Test
-    @Retry
     @ExtendWith(DockerAvailableCondition::class)
-    fun integration_testCodexDocker() = runTest(timeout = 180.seconds) {
+    fun integration_testCodexDocker() = runTest(timeout = timeout) {
         val agent = CliAIAgent.codex(
             systemPrompt = cliSystemPrompt,
             apiKey = readTestOpenAIKeyFromEnv(),
-            transport = CliTransport.default()
+            transport = dockerTransport
         )
 
         testAgent(agent)
@@ -85,16 +85,14 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
 
     // it could fail locally if you are logged in to codex
     @Test
-    @Retry
-    fun integration_testCodexNoKey() = runTest(timeout = 180.seconds) {
+    fun integration_testCodexNoKey() = runTest(timeout = timeout) {
         val agent = CliAIAgent.codex(transport = CliTransport.default())
 
         assertTrue(agent.run("Hi!").isError, "Response should be an error")
     }
 
     @Test
-    @Retry
-    fun integration_testClaude() = runTest(timeout = 180.seconds) {
+    fun integration_testClaude() = runTest(timeout = timeout) {
         val agent = CliAIAgent.claude(
             systemPrompt = cliSystemPrompt,
             apiKey = readTestAnthropicKeyFromEnv(),
@@ -105,9 +103,8 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     }
 
     @Test
-    @Retry
     @ExtendWith(DockerAvailableCondition::class)
-    fun integration_testClaudeDocker() = runTest(timeout = 180.seconds) {
+    fun integration_testClaudeDocker() = runTest(timeout = timeout) {
         val agent = CliAIAgent.claude(
             systemPrompt = cliSystemPrompt,
             apiKey = readTestAnthropicKeyFromEnv(),
@@ -119,8 +116,7 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
 
     // it could fail locally if you are logged in to claude
     @Test
-    @Retry
-    fun integration_testClaudeNoKey() = runTest(timeout = 180.seconds) {
+    fun integration_testClaudeNoKey() = runTest(timeout = timeout) {
         val agent = CliAIAgent.claude(
             transport = CliTransport.default(),
             apiKey = "invalid-key"
@@ -130,12 +126,11 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     }
 
     @Test
-    @Retry
     @DisabledOnOs(
         OS.WINDOWS,
         disabledReason = "Structured output fails on Windows. Probably due to the json schema broken by cmd. KG-779"
     )
-    fun integration_testClaudeStructuredOutput() = runTest(timeout = 180.seconds) {
+    fun integration_testClaudeStructuredOutput() = runTest(timeout = timeout) {
         val agent = CliAIAgent.claude<String, StructuredResult>(
             transport = CliTransport.default(),
             apiKey = readTestAnthropicKeyFromEnv(),
@@ -148,8 +143,7 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     }
 
     @Test
-    @Retry
-    fun integration_testClaudeCustomInput() = runTest(timeout = 180.seconds) {
+    fun integration_testClaudeCustomInput() = runTest(timeout = timeout) {
         val agent = CliAIAgent.claude<TestInput>(
             transport = CliTransport.default(),
             apiKey = readTestAnthropicKeyFromEnv(),
@@ -162,8 +156,7 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     }
 
     @Test
-    @Retry
-    fun integration_testCodexCustomInput() = runTest(timeout = 180.seconds) {
+    fun integration_testCodexCustomInput() = runTest(timeout = timeout) {
         val agent = CliAIAgent.codex<TestInput>(
             transport = CliTransport.default(),
             apiKey = readTestOpenAIKeyFromEnv(),
@@ -176,8 +169,7 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
     }
 
     @Test
-    @Retry
-    fun integration_testCliAgentInGraphs() = runTest(timeout = 180.seconds) {
+    fun integration_testCliAgentInGraphs() = runTest(timeout = timeout) {
         val claudeApiKey = readTestAnthropicKeyFromEnv()
         val codexApiKey = readTestOpenAIKeyFromEnv()
 

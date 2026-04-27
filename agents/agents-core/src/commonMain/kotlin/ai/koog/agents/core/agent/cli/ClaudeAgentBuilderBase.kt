@@ -11,6 +11,8 @@ import kotlin.time.Duration
  */
 public abstract class ClaudeAgentBuilderBase<Input, Output, Self : ClaudeAgentBuilderBase<Input, Output, Self>> internal constructor(
     transport: CliTransport,
+    binaryPath: String?,
+    name: String?,
     systemPrompt: String?,
     llModel: LLModel?,
     workspace: String,
@@ -23,6 +25,8 @@ public abstract class ClaudeAgentBuilderBase<Input, Output, Self : ClaudeAgentBu
     protected var additionalFlags: List<String> = emptyList(),
 ) : CliAIAgentBuilderBase<Self>(
     transport,
+    binaryPath,
+    name,
     systemPrompt,
     llModel,
     workspace,

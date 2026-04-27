@@ -1,6 +1,5 @@
 package ai.koog.cli.transport
 
-import ai.koog.agents.annotations.JavaAPI
 import kotlinx.coroutines.flow.Flow
 import kotlin.jvm.JvmOverloads
 import kotlin.jvm.JvmStatic
@@ -34,9 +33,9 @@ public actual interface CliTransport {
     ): Flow<CliEvent>
 
     /**
-     * Default implementation of ProcessTransport using a ProcessBuilder to spawn a new process in available shell.
+     * Default implementation of [ProcessCliTransport] using a ProcessBuilder to spawn a new process in available shell.
      */
-    public object Default : ProcessCliTransport() {
+    public object LocalProcess : ProcessCliTransport() {
         private val isWindows = System.getProperty("os.name").lowercase().contains("win")
 
         override fun buildCommand(
@@ -57,15 +56,19 @@ public actual interface CliTransport {
         /**
          * Default implementation of ProcessTransport using a ProcessBuilder to spawn a new process in available shell.
          */
-        @JavaAPI
         @JvmStatic
         @JvmName("getDefault")
-        public fun default(): CliTransport = Default
+        public fun default(): CliTransport = LocalProcess
 
         /**
-         * Creates a [DockerCliTransport] with the specified image and optional volumes.
+         * Creates an instance of [CliTransport] that uses a local process via the [ProcessBuilder] to execute the command.
          */
-        @JavaAPI
+        @JvmStatic
+        public fun withLocalProcess(): CliTransport = LocalProcess
+
+        /**
+         * Creates an instance of [CliTransport] spawning a docker process with the specified image and optional volumes and executing the provided command in the container.
+         */
         @JvmStatic
         @JvmOverloads
         public fun withDocker(

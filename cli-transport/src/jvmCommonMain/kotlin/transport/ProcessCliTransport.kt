@@ -138,7 +138,7 @@ public abstract class ProcessCliTransport : CliTransport {
         }.flowOn(Dispatchers.SuitableForIO)
     }
 
-    public companion object {
+    private companion object {
         private val logger = KotlinLogging.logger {}
     }
 }

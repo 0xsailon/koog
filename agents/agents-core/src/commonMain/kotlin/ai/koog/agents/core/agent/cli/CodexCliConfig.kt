@@ -8,6 +8,7 @@ import ai.koog.cli.transport.CliTransport
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import io.github.oshai.kotlinlogging.KLogger
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -74,6 +75,8 @@ public enum class CodexApprovalPolicy(public val value: String) {
 public class CodexCliConfig<Input>(
     override val transport: CliTransport,
     public val apiKey: String? = null,
+    binaryPath: String? = null,
+    name: String? = null,
     public val sandbox: CodexSandboxMode? = null,
     public val askForApproval: CodexApprovalPolicy? = null,
     public val additionalFlags: List<String> = emptyList(),
@@ -81,7 +84,8 @@ public class CodexCliConfig<Input>(
     override val timeout: Duration? = null,
     private val generateRequest: CliConfig.GenerateRequest<Input>
 ) : CliConfig<Input, CliAIAgentResponse> {
-    override val binaryPath: String = "codex"
+    override val binaryPath: String = binaryPath ?: "codex"
+    override val name: String = name ?: "codex"
 
     override val env: Map<String, String> = buildMap {
         apiKey?.let { put("CODEX_API_KEY", it) }
@@ -116,7 +120,7 @@ public class CodexCliConfig<Input>(
     override fun generateRequest(input: Input): String =
         generateRequest.generateRequest(input)
 
-    override fun extractOutput(events: List<CliEvent>): CliAIAgentResponse {
+    override fun extractOutput(events: List<CliEvent>, logger: KLogger): CliAIAgentResponse {
         val failedEvent = events.filterIsInstance<CliEvent.Failed>().firstOrNull()
         if (failedEvent != null) {
             return CliAIAgentResponse(
@@ -126,7 +130,7 @@ public class CodexCliConfig<Input>(
             )
         }
 
-        val jsonEvents = toJsonStdoutEvents(events)
+        val jsonEvents = toJsonStdoutEvents(events, logger)
 
         val errorEvent = jsonEvents.lastOrNull { it["type"]?.stringVal == "turn.failed" }
         val resultIsError = errorEvent != null
@@ -138,7 +142,7 @@ public class CodexCliConfig<Input>(
             jsonEvents
                 .filter { it["type"]?.stringVal == "item.completed" }
                 .mapNotNull { it["item"] as? JsonObject }
-                .maxByOrNull { it["id"]?.stringVal?.drop(5)?.toInt() ?: -1 }
+                .maxByOrNull { it["id"]?.stringVal?.substringAfterLast("_")?.toIntOrNull() ?: -1 }
                 ?.get("text")?.stringVal
         }
 
