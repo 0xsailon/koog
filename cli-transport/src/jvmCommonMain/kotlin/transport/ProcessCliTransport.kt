@@ -9,9 +9,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Base class for transports that execute a local [Process].
@@ -27,21 +31,8 @@ public abstract class ProcessCliTransport : CliTransport {
         env: Map<String, String> = emptyMap()
     ): List<String>
 
-    override fun checkAvailability(binaryPath: String, workspace: String): CliAvailability = try {
-        val exitCode = ProcessBuilder(buildCommand(listOf(binaryPath, "--version"), workspace))
-            .directory(File(workspace))
-            .start()
-            .waitFor()
-        if (exitCode == 0) {
-            CliAvailable
-        } else {
-            CliUnavailable("Process exited with code $exitCode")
-        }
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        CliUnavailable(reason = e.message, cause = e)
-    }
+    override suspend fun checkAvailability(binaryPath: String, workspace: String, timeout: Duration?): CliAvailability =
+        checkAvailability(buildCommand(listOf(binaryPath, "--version"), workspace), workspace, timeout)
 
     override fun execute(
         command: List<String>,
@@ -136,6 +127,33 @@ public abstract class ProcessCliTransport : CliTransport {
                 waiter.cancel()
             }
         }.flowOn(Dispatchers.SuitableForIO)
+    }
+
+    protected suspend fun checkAvailability(command: List<String>, workspace: String, timeout: Duration?): CliAvailability = try {
+        val exitCode = withContext(Dispatchers.SuitableForIO) {
+            val process = ProcessBuilder(command)
+                .directory(File(workspace))
+                .start()
+
+            val timeout = timeout ?: 1.seconds
+            val finished = process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+
+            if (!finished) {
+                process.destroy()
+                throw CliTimeoutException("Process timed out after $timeout", timeout)
+            }
+
+            process.exitValue()
+        }
+        if (exitCode == 0) {
+            CliAvailable
+        } else {
+            CliUnavailable("Process exited with code $exitCode")
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        CliUnavailable(reason = e.message, cause = e)
     }
 
     private companion object {

@@ -13,7 +13,7 @@ class ProcessCliTransportTest {
     private val isWindows = System.getProperty("os.name").lowercase().contains("win")
 
     @Test
-    fun testCheckAvailability() {
+    fun testCheckAvailability() = runTest {
         val availability = CliTransport.LocalProcess.checkAvailability("java", ".")
         availability.shouldBeInstanceOf<CliAvailable>()
     }

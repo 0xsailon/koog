@@ -14,8 +14,9 @@ public actual interface CliTransport {
      *
      * @param binaryPath The path to the cli binary.
      * @param workspace The workspace directory where the cli will be executed.
+     * @param timeout The maximum duration to wait for the cli availability check.
      */
-    public actual fun checkAvailability(binaryPath: String, workspace: String): CliAvailability
+    public actual suspend fun checkAvailability(binaryPath: String, workspace: String, timeout: Duration?): CliAvailability
 
     /**
      * Executes the cli command and returns a Flow of AgentEvents.

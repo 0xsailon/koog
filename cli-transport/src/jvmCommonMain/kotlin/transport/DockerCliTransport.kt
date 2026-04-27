@@ -1,7 +1,11 @@
 package ai.koog.cli.transport
 
+import ai.koog.utils.io.SuitableForIO
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.time.Duration
 
 /**
  * A volume mapping for Docker.
@@ -50,21 +54,12 @@ public class DockerCliTransport @JvmOverloads constructor(
 
     private val isWindows = System.getProperty("os.name").lowercase().contains("win")
 
-    override fun checkAvailability(binaryPath: String, workspace: String): CliAvailability {
-        try {
-            val exitCode = ProcessBuilder(buildCommand(listOf(binaryPath, "--version"), workspace))
-                .directory(File(workspace))
-                .start()
-                .waitFor()
-            if (exitCode != 0) {
-                return CliUnavailable("Docker unavailable $exitCode")
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            return CliUnavailable(reason = e.message, cause = e)
+    override suspend fun checkAvailability(binaryPath: String, workspace: String, timeout: Duration?): CliAvailability {
+        val dockerAvailability = checkAvailability(listOf(dockerPath, "--version"), workspace, timeout)
+        if (dockerAvailability is CliUnavailable) {
+            return CliUnavailable("Docker is not available: ${dockerAvailability.reason}", dockerAvailability.cause)
         }
-        return super.checkAvailability(binaryPath, workspace)
+        return super.checkAvailability(binaryPath, workspace, timeout)
     }
 
     override fun buildCommand(

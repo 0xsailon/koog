@@ -42,8 +42,8 @@ public class AIAgentCliStrategy<Input, Output> internal constructor(
         return result
     }
 
-    private fun checkAvailability() {
-        val availability = config.transport.checkAvailability(config.binaryPath, config.workspace)
+    private suspend fun checkAvailability() {
+        val availability = config.transport.checkAvailability(config.binaryPath, config.workspace, config.timeout)
         if (availability is CliUnavailable) {
             throw CliNotFoundException(
                 "CLI '${config.binaryPath}' is not available: ${availability.reason}",
