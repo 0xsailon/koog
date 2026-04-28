@@ -14,12 +14,12 @@ import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.parallel
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.getToolCall
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.reActStrategy
 import ai.koog.agents.features.eventHandler.feature.EventHandler
@@ -211,8 +211,8 @@ class AIAgentIntegrationTest : AIAgentTestBase() {
         compressBeforeToolResult: Boolean,
     ) = strategy<String, Pair<String, List<Message>>>("history-compression-with-tools-test") {
         val callLLM by nodeLLMRequest(name = "callLLM", allowToolCalls = true)
-        val executeTool by nodeExecuteTool("execute_tool")
-        val compressResponse by nodeLLMCompressHistory<Message.Response>(
+        val executeTool by nodeExecuteTools("execute_tool")
+        val compressResponse by nodeLLMCompressHistory<Message.Assistant>(
             name = "compress_history",
             strategy = strategy
         )
@@ -224,13 +224,13 @@ class AIAgentIntegrationTest : AIAgentTestBase() {
 
         edge(nodeStart forwardTo callLLM)
         if (compressBeforeToolResult) {
-            edge(callLLM forwardTo executeTool onToolCall { true })
+            edge(callLLM forwardTo executeTool getToolCall { true })
             executeTool then compressToolResult then sendToolResult
-            edge(sendToolResult forwardTo executeTool onToolCall (SimpleCalculatorTool))
+            edge(sendToolResult forwardTo executeTool getToolCall (SimpleCalculatorTool))
             edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true } transformed { it to llm.prompt.messages })
         } else {
             callLLM then compressResponse
-            edge(compressResponse forwardTo executeTool onToolCall (SimpleCalculatorTool))
+            edge(compressResponse forwardTo executeTool getToolCall (SimpleCalculatorTool))
             edge(compressResponse forwardTo nodeFinish onAssistantMessage { true } transformed { it to llm.prompt.messages })
             executeTool then sendToolResult then compressResponse
         }

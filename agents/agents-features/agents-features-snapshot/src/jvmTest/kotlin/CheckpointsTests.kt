@@ -11,12 +11,12 @@ import ai.koog.agents.core.dsl.builder.AIAgentGraphStrategyBuilder
 import ai.koog.agents.core.dsl.builder.AIAgentNodeDelegate
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.getToolCall
 import ai.koog.agents.core.dsl.extension.nodeDoNothing
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.feature.message.FeatureMessage
 import ai.koog.agents.core.feature.message.FeatureMessageProcessor
 import ai.koog.agents.core.feature.model.events.LLMCallCompletedEvent
@@ -241,7 +241,7 @@ class CheckpointsTests {
             // Node that emits simple output
             val textNode1 by simpleNode(output = "Node 1 output")
 
-            nodeExecuteTool()
+            nodeExecuteTools()
             val createUser1 by callUserToolNode("user-1", "good man")
 
             // Node that creates a checkpoint
@@ -511,7 +511,7 @@ class CheckpointsTests {
                     is NodeExecutionStartingEvent -> appendLine(" - enter node: `${it.nodeName}`")
                     is NodeExecutionCompletedEvent -> appendLine(" - exit node: `${it.nodeName}`")
                     is LLMCallStartingEvent -> appendLine("       - LLM call: `${it.prompt.messages.last().content}`")
-                    is LLMCallCompletedEvent -> appendLine("       - LLM response: `${it.responses.first().content}`")
+                    is LLMCallCompletedEvent -> appendLine("       - LLM response: `${it.response.first().content}`")
                     is ToolCallStartingEvent -> appendLine("       - tool call: `${it.toolName}` (${it.toolArgs})")
                     is ToolCallCompletedEvent -> appendLine("       - tool result: `${it.toolName}` == ${it.result}")
                 }
@@ -614,17 +614,17 @@ class CheckpointsTests {
             },
             strategy = strategy("simple-with-interrupt") {
                 val callLLM by nodeLLMRequest()
-                val executeTool by nodeExecuteTool()
+                val executeTool by nodeExecuteTools()
                 val sendToolResult by nodeLLMSendToolResult()
 
                 val nodeThrow by node<Any?, String> { throw Exception("TERMINATED AFTER THIRD TOOL CALL") }
 
                 edge(nodeStart forwardTo callLLM)
-                edge(callLLM forwardTo executeTool onToolCall { true })
+                edge(callLLM forwardTo executeTool getToolCall { true })
                 edge(callLLM forwardTo nodeFinish onAssistantMessage { true })
                 edge(executeTool forwardTo sendToolResult onCondition { !agentInterrupted() })
                 edge(executeTool forwardTo nodeThrow onCondition { agentInterrupted() })
-                edge(sendToolResult forwardTo executeTool onToolCall { true })
+                edge(sendToolResult forwardTo executeTool getToolCall { true })
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             },
             agentConfig = agentConfig,
@@ -787,17 +787,17 @@ class CheckpointsTests {
             },
             strategy = strategy("simple-with-interrupt") {
                 val callLLM by nodeLLMRequest()
-                val executeTool by nodeExecuteTool()
+                val executeTool by nodeExecuteTools()
                 val sendToolResult by nodeLLMSendToolResult()
 
                 val nodeThrow by node<Any?, String> { throw Exception("TERMINATED AFTER THIRD TOOL CALL") }
 
                 edge(nodeStart forwardTo callLLM)
-                edge(callLLM forwardTo executeTool onToolCall { true })
+                edge(callLLM forwardTo executeTool getToolCall { true })
                 edge(callLLM forwardTo nodeFinish onAssistantMessage { true })
                 edge(executeTool forwardTo sendToolResult onCondition { !agentInterrupted() })
                 edge(executeTool forwardTo nodeThrow onCondition { agentInterrupted() })
-                edge(sendToolResult forwardTo executeTool onToolCall { true })
+                edge(sendToolResult forwardTo executeTool getToolCall { true })
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             },
             agentConfig = agentConfig,

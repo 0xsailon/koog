@@ -4,13 +4,14 @@ import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.ollama.client.dto.OllamaChatMessageDTO
 import ai.koog.prompt.executor.ollama.client.dto.OllamaChatRequestDTO
 import ai.koog.prompt.executor.ollama.client.dto.OllamaChatResponseDTO
-import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.streaming.StreamFrame
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -50,11 +51,11 @@ class OllamaThinkingFeatureTest {
             model = OllamaModels.Meta.LLAMA_3_2
         )
 
-        assertEquals(1, responses.size)
-        val response = responses.first()
-        assertTrue(response is Message.Assistant)
+        assertEquals(1, responses.parts.size)
+        val response = responses.parts.first()
+        val textPart = assertIs<MessagePart.Text>(response)
         // The thinking should still be in the content as it was provided
-        assertTrue(response.content.contains(thinkingContent) || response.content.isEmpty())
+        assertTrue(textPart.text.contains(thinkingContent) || textPart.text.isEmpty())
     }
 
     @Test
@@ -83,10 +84,9 @@ class OllamaThinkingFeatureTest {
             model = OllamaModels.Meta.LLAMA_3_2
         )
 
-        assertEquals(1, responses.size)
-        val response = responses.first()
-        assertTrue(response is Message.Assistant)
-        assertEquals(responseContent, response.content)
+        assertEquals(1, responses.parts.size)
+        val textPart = assertIs<MessagePart.Text>(responses.parts.first())
+        assertEquals(responseContent, textPart.text)
     }
 
     @Test
@@ -114,10 +114,9 @@ class OllamaThinkingFeatureTest {
             model = OllamaModels.Meta.LLAMA_3_2
         )
 
-        assertEquals(1, responses.size)
-        val response = responses.first()
-        assertTrue(response is Message.Assistant)
-        assertEquals(responseContent, response.content)
+        assertEquals(1, responses.parts.size)
+        val textPart = assertIs<MessagePart.Text>(responses.parts.first())
+        assertEquals(responseContent, textPart.text)
     }
 
     @Test
@@ -145,10 +144,9 @@ class OllamaThinkingFeatureTest {
             model = OllamaModels.Meta.LLAMA_3_2
         )
 
-        assertEquals(1, responses.size)
-        val response = responses.first()
-        assertTrue(response is Message.Assistant)
-        assertEquals(responseContent, response.content)
+        assertEquals(1, responses.parts.size)
+        val textPart = assertIs<MessagePart.Text>(responses.parts.first())
+        assertEquals(responseContent, textPart.text)
     }
 
     @Test
@@ -462,14 +460,14 @@ class OllamaThinkingFeatureTest {
             baseClient = HttpClient(mockServer.mockEngine)
         )
 
-        val responses = ollamaClient.execute(
+        val response = ollamaClient.execute(
             prompt = prompt("test") { },
             model = OllamaModels.Meta.LLAMA_3_2
         )
 
-        assertEquals(1, responses.size)
-        val response = responses.first()
-        assertTrue(response is Message.Assistant)
+        assertEquals(1, response.parts.size)
+        val textPart = assertIs<MessagePart.Text>(response.parts.first())
+        assertEquals("Response with thinking", textPart.text)
 
         val metaInfo = assertNotNull(response.metaInfo)
         assertEquals(promptTokens, metaInfo.inputTokensCount)

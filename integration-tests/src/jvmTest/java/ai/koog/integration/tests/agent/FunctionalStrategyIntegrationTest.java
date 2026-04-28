@@ -36,7 +36,7 @@ public class FunctionalStrategyIntegrationTest extends KoogJavaTestBase {
             );
     }
 
-    private String getAssistantContentOrDefault(Message.Response response, String defaultValue) {
+    private String getAssistantContentOrDefault(Message.Assistant response, String defaultValue) {
         if (response instanceof Message.Assistant) {
             return response.getContent();
         }
@@ -79,10 +79,10 @@ public class FunctionalStrategyIntegrationTest extends KoogJavaTestBase {
         AIAgent<String, String> agent = javaBuilder(model)
             .systemPrompt("You are a helpful assistant.")
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response response1 = context.requestLLM("First step: " + input, true);
+                Message.Assistant response1 = context.requestLLM("First step: " + input, true);
                 String step1Result = getAssistantContentOrDefault(response1, "");
 
-                Message.Response response2 = context.requestLLM(
+                Message.Assistant response2 = context.requestLLM(
                     "Second step, previous result was: " + step1Result,
                     true
                 );
@@ -109,7 +109,7 @@ public class FunctionalStrategyIntegrationTest extends KoogJavaTestBase {
             .systemPrompt("You are a calculator. You MUST use the add tool to perform calculations. DO NOT answer without calling tools.")
             .toolRegistry(toolRegistry)
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response currentResponse = context.requestLLM(
+                Message.Assistant currentResponse = context.requestLLM(
                     "Calculate: " + input + ". You MUST use the add tool.",
                     true
                 );
@@ -191,7 +191,7 @@ public class FunctionalStrategyIntegrationTest extends KoogJavaTestBase {
         AIAgent<String, String> agent = javaBuilder(model)
             .systemPrompt("You are a helpful assistant that generates JSON.")
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response response = context.requestLLM(
+                Message.Assistant response = context.requestLLM(
                     "Generate a JSON object with 'status' field set to 'success'",
                     true
                 );

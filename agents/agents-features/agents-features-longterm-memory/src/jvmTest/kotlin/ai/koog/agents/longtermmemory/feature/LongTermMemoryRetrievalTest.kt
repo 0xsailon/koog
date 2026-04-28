@@ -77,7 +77,7 @@ class LongTermMemoryRetrievalTest {
             prompt: Prompt,
             model: LLModel,
             tools: List<ToolDescriptor>
-        ): List<Message.Response> {
+        ): List<Message.Assistant> {
             val allContent = prompt.messages.joinToString("\n") { it.content }
             return listOf(Message.Assistant(onPrompt(allContent), ResponseMetaInfo.Empty))
         }

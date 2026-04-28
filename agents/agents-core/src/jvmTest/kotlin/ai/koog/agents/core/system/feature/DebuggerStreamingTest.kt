@@ -295,7 +295,7 @@ class DebuggerStreamingTest {
                 prompt: Prompt,
                 model: LLModel,
                 tools: List<ToolDescriptor>
-            ): List<Message.Response> = emptyList()
+            ): List<Message.Assistant> = emptyList()
 
             override fun executeStreaming(
                 prompt: Prompt,

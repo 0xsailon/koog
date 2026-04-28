@@ -11,7 +11,6 @@ import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
 import ai.koog.agents.core.environment.AIAgentEnvironment
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.SafeTool
-import ai.koog.agents.core.environment.result
 import ai.koog.agents.core.environment.toSafeResult
 import ai.koog.agents.core.feature.pipeline.AIAgentPipeline
 import ai.koog.agents.core.tools.Tool
@@ -26,6 +25,7 @@ import ai.koog.prompt.executor.model.StructureFixingParser
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.markdown.markdown
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.processor.ResponseProcessor
 import ai.koog.prompt.streaming.StreamFrame
@@ -85,14 +85,14 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     public suspend fun requestLLM(
         message: String,
         allowToolCalls: Boolean = true
-    ): Message.Response {
+    ): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 user(message)
             }
 
             if (allowToolCalls) {
-                requestLLM()
+                this.requestLLM()
             } else {
                 requestLLMWithoutTools()
             }
@@ -105,31 +105,42 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
      * @param action A lambda function to execute if the response is an instance of [Message.Assistant].
      */
-    public fun onAssistantMessage(
-        response: Message.Response,
-        action: (Message.Assistant) -> Unit
+    public fun onTextMessage(
+        response: Message.Assistant,
+        action: (MessagePart.Text) -> Unit
     ) {
-        if (response is Message.Assistant) {
-            action(response)
-        }
+        response.parts.firstOrNull { it is MessagePart.Text }?.let { action(it as MessagePart.Text) }
     }
 
     /**
-     * Attempts to cast a [Message.Response] instance to a [Message.Assistant] type.
+     * Executes the provided action if the given response is of type [Message.Assistant].
+     *
+     * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
+     * @param action A lambda function to execute if the response is an instance of [Message.Assistant].
+     */
+    public fun onMultipleTextMessage(
+        response: Message.Assistant,
+        action: (List<MessagePart.Text>) -> Unit
+    ) {
+        action(response.parts.filterIsInstance<MessagePart.Text>())
+    }
+
+    /**
+     * Attempts to cast a [Message.Assistant] instance to a [Message.Assistant] type.
      *
      * @return The [Message.Assistant] instance if the cast is successful, or `null` if the cast fails.
      */
-    public fun Message.Response.asAssistantMessageOrNull(): Message.Assistant? = this as? Message.Assistant
+    public fun Message.Assistant.asAssistantMessageOrNull(): Message.Assistant? = this as? Message.Assistant
 
     /**
-     * Casts the current instance of a [Message.Response] to a [Message.Assistant].
+     * Casts the current instance of a [Message.Assistant] to a [Message.Assistant].
      * This function should only be used when it is guaranteed that the instance
      * is of type [Message.Assistant], as it will throw an exception if the type
      * does not match.
      *
      * @return The current instance cast to [Message.Assistant].
      */
-    public fun Message.Response.asAssistantMessage(): Message.Assistant = this as Message.Assistant
+    public fun Message.Assistant.asAssistantMessage(): Message.Assistant = this as Message.Assistant
 
     /**
      * Invokes the provided action when multiple tool call messages are found within a given list of response messages.
@@ -140,10 +151,10 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param action A lambda function to be executed with the list of filtered tool call messages, if any exist.
      */
     public fun onMultipleToolCalls(
-        response: List<Message.Response>,
-        action: (List<Message.Tool.Call>) -> Unit
+        response: Message.Assistant,
+        action: (List<MessagePart.Tool.Call>) -> Unit
     ) {
-        response.filterIsInstance<Message.Tool.Call>().takeIf { it.isNotEmpty() }?.let {
+        response.parts.filterIsInstance<MessagePart.Tool.Call>().takeIf { it.isNotEmpty() }?.let {
             action(it)
         }
     }
@@ -155,8 +166,8 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @return A list of messages specifically representing tool calls, which are instances of [Message.Tool.Call].
      */
     public fun extractToolCalls(
-        response: List<Message.Response>
-    ): List<Message.Tool.Call> = response.filterIsInstance<Message.Tool.Call>()
+        response: Message.Assistant
+    ): List<MessagePart.Tool.Call> = response.parts.filterIsInstance<MessagePart.Tool.Call>()
 
     /**
      * Filters the provided list of response messages to include only assistant messages and,
@@ -166,7 +177,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param action A lambda function to execute on the list of assistant messages if the filtered list is not empty.
      */
     public fun onMultipleAssistantMessages(
-        response: List<Message.Response>,
+        response: List<Message.Assistant>,
         action: (List<Message.Assistant>) -> Unit
     ) {
         response.filterIsInstance<Message.Assistant>().takeIf { it.isNotEmpty() }?.let {
@@ -205,7 +216,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         fixingParser: StructureFixingParser? = null
     ): Result<StructuredResponse<T>> {
         return llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 user(message)
             }
 
@@ -245,13 +256,13 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param message The content of the message to be sent to the LLM.
      * @return A list of LLM responses.
      */
-    public suspend fun requestLLMMultiple(message: String): List<Message.Response> {
+    public suspend fun requestLLM(message: String): Message.Assistant {
         return llm.writeSession {
             updatePrompt {
                 user(message)
             }
 
-            requestLLMMultiple()
+            this.requestLLM()
         }
     }
 
@@ -262,7 +273,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param message The content of the message to be sent to the LLM.
      * @return The LLM response containing tool calls.
      */
-    public suspend fun requestLLMOnlyCallingTools(message: String): Message.Response {
+    public suspend fun requestLLMOnlyCallingTools(message: String): Message.Assistant {
         return llm.writeSession {
             updatePrompt {
                 user(message)
@@ -283,7 +294,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     public suspend fun requestLLMForceOneTool(
         message: String,
         tool: ToolDescriptor
-    ): Message.Response {
+    ): Message.Assistant {
         return llm.writeSession {
             updatePrompt {
                 user(message)
@@ -304,13 +315,13 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     public suspend fun requestLLMForceOneTool(
         message: String,
         tool: Tool<*, *>
-    ): Message.Response {
+    ): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 user(message)
             }
 
-            requestLLMForceOneTool(tool)
+            requestLLMForceOneTool(tool.descriptor)
         }
     }
 
@@ -320,7 +331,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param toolCall The tool call to execute.
      * @return The result of the tool execution.
      */
-    public suspend fun executeTool(toolCall: Message.Tool.Call): ReceivedToolResult {
+    public suspend fun executeTool(toolCall: MessagePart.Tool.Call): ReceivedToolResult {
         return environment.executeTool(toolCall)
     }
 
@@ -333,7 +344,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @return A list of results from the executed tool calls.
      */
     public suspend fun executeMultipleTools(
-        toolCalls: List<Message.Tool.Call>,
+        toolCalls: List<MessagePart.Tool.Call>,
         parallelTools: Boolean = false
     ): List<ReceivedToolResult> {
         return if (parallelTools) {
@@ -349,15 +360,15 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param toolResult The tool result to add to the prompt.
      * @return The LLM response.
      */
-    public suspend fun sendToolResult(toolResult: ReceivedToolResult): Message.Response {
+    public suspend fun sendToolResult(toolResult: ReceivedToolResult): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
-                tool {
-                    result(toolResult)
+            appendPrompt {
+                user {
+                    toolResult(toolResult.toMessagePart())
                 }
             }
 
-            requestLLM()
+            this.requestLLM()
         }
     }
 
@@ -369,15 +380,15 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      */
     public suspend fun sendMultipleToolResults(
         results: List<ReceivedToolResult>
-    ): List<Message.Response> {
+    ): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
-                tool {
-                    results.forEach { result(it) }
+            appendPrompt {
+                user {
+                    results.forEach { toolResult(it.toMessagePart()) }
                 }
             }
 
-            requestLLMMultiple()
+            requestLLM()
         }
     }
 
@@ -642,10 +653,10 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         maxAssistantResponses: Int
     ): OutputTransformed {
         var feedbacksCount = 0
-        var response = requestLLM(task)
+        var response = this@AIAgentFunctionalContextBaseCommon.requestLLM(task)
         while (true) {
             when {
-                response is Message.Tool.Call -> {
+                response is MessagePart.Tool.Call -> {
                     val toolResult = executeToolHacked(response, finishTool)
 
                     if (toolResult.tool == finishTool.descriptor.name) {
@@ -664,7 +675,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
                         )
                     }
 
-                    response = requestLLM(
+                    response = this@AIAgentFunctionalContextBaseCommon.requestLLM(
                         message = markdown {
                             h1("DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.")
                             h2("IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!")
@@ -678,7 +689,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     @OptIn(InternalAgentToolsApi::class, InternalAgentsApi::class)
     @PublishedApi
     internal suspend fun <Output, OutputTransformed> executeMultipleToolsHacked(
-        toolCalls: List<Message.Tool.Call>,
+        toolCalls: List<MessagePart.Tool.Call>,
         finishTool: Tool<Output, OutputTransformed>,
         parallelTools: Boolean = false
     ): List<ReceivedToolResult> {
@@ -701,7 +712,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     @OptIn(InternalAgentToolsApi::class)
     @PublishedApi
     internal suspend fun <Output, OutputTransformed> executeToolHacked(
-        toolCall: Message.Tool.Call,
+        toolCall: MessagePart.Tool.Call,
         finishTool: Tool<Output, OutputTransformed>
     ): ReceivedToolResult = executeMultipleToolsHacked(listOf(toolCall), finishTool).first()
 
@@ -714,38 +725,38 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         maxAssistantResponses: Int
     ): OutputTransformed {
         var feedbacksCount = 0
-        var responses = requestLLMMultiple(task)
+        var response = requestLLM(task)
         while (true) {
             when {
-                responses.containsToolCalls() -> {
-                    val toolCalls = extractToolCalls(responses)
-                    val toolResults =
-                        executeMultipleToolsHacked(toolCalls, finishTool, parallelTools = runMode == ToolCalls.PARALLEL)
-
-                    toolResults.firstOrNull { it.tool == finishTool.descriptor.name }
-                        ?.let { finishResult ->
-                            return finishResult.toSafeResult(finishTool, config.serializer).asSuccessful().result
-                        }
-
-                    responses = sendMultipleToolResults(toolResults)
-                }
-
-                else -> {
-                    if (feedbacksCount++ > maxAssistantResponses) {
-                        error(
-                            "Unable to finish subtask. Reason: the model '${llm.model.id}' does not support tool choice, " +
-                                "and was not able to call `${finishTool.name}` tool after " +
-                                "<$maxAssistantResponses> attempts."
-                        )
-                    }
-
-                    responses = requestLLMMultiple(
-                        message = markdown {
-                            h1("DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.")
-                            h2("IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!")
-                        }
-                    )
-                }
+//                response.containsToolCalls() -> {
+//                    val toolCalls = extractToolCalls(response)
+//                    val toolResults =
+//                        executeMultipleToolsHacked(toolCalls, finishTool, parallelTools = runMode == ToolCalls.PARALLEL)
+//
+//                    toolResults.firstOrNull { it.tool == finishTool.descriptor.name }
+//                        ?.let { finishResult ->
+//                            return finishResult.toSafeResult(finishTool, config.serializer).asSuccessful().result
+//                        }
+//
+//                    responses = sendMultipleToolResults(toolResults)
+//                }
+//
+//                else -> {
+//                    if (feedbacksCount++ > maxAssistantResponses) {
+//                        error(
+//                            "Unable to finish subtask. Reason: the model '${llm.model.id}' does not support tool choice, " +
+//                                "and was not able to call `${finishTool.name}` tool after " +
+//                                "<$maxAssistantResponses> attempts."
+//                        )
+//                    }
+//
+//                    responses = requestLLM(
+//                        message = markdown {
+//                            h1("DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.")
+//                            h2("IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!")
+//                        }
+//                    )
+//                }
             }
         }
     }

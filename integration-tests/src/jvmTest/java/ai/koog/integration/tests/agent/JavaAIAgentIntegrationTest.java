@@ -200,7 +200,7 @@ public class JavaAIAgentIntegrationTest extends KoogJavaTestBase {
             )
             .systemPrompt("You are a helpful assistant.")
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response first = context.requestLLM("Reply the user", true);
+                Message.Assistant first = context.requestLLM("Reply the user", true);
                 String second = context.subtask("Verify the answer")
                     .withOutput(String.class)
                     .useLLM(AnthropicModels.Opus_4_6)
@@ -348,7 +348,7 @@ public class JavaAIAgentIntegrationTest extends KoogJavaTestBase {
             )
             .toolRegistry(ToolRegistry.builder().tools(numberTools).build())
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response response = context.requestLLM("Calculate 7 times 2. Use multiply tool.", true);
+                Message.Assistant response = context.requestLLM("Calculate 7 times 2. Use multiply tool.", true);
                 if (!(response instanceof Message.Tool.Call)) {
                     return response.getContent();
                 }
@@ -359,7 +359,7 @@ public class JavaAIAgentIntegrationTest extends KoogJavaTestBase {
                 context.compressHistory(HistoryCompressionStrategy.WholeHistory, true);
                 beforeCompressCalls.incrementAndGet();
 
-                Message.Response afterToolResult = context.sendToolResult(toolResult);
+                Message.Assistant afterToolResult = context.sendToolResult(toolResult);
 
                 context.compressHistory(HistoryCompressionStrategy.FromLastNMessages(2), true);
                 afterCompressCalls.incrementAndGet();

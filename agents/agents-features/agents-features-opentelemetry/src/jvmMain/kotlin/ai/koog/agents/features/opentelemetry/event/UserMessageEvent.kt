@@ -3,6 +3,7 @@ package ai.koog.agents.features.opentelemetry.event
 import ai.koog.agents.features.opentelemetry.attribute.CommonAttributes
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 
 internal class UserMessageEvent(
     provider: LLMProvider,
@@ -15,7 +16,7 @@ internal class UserMessageEvent(
 
         // Body Fields
         addBodyField(EventBodyFields.Role(role = message.role))
-        addBodyField(EventBodyFields.Content(content = message.content))
+        addBodyField(EventBodyFields.Content(content = message.parts.filterIsInstance<MessagePart.Text>().joinToString("\n") { it.text }))
     }
 
     override val name: String = super.name.concatName("user.message")

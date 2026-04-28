@@ -77,7 +77,7 @@ class SafeToolTest {
                     tool = toolCall.tool,
                     toolArgs = toolCall.contentJson.toKoogJSONObject(),
                     toolDescription = null,
-                    content = resultContent,
+                    output = resultContent,
                     resultKind = ToolResultKind.Success,
                     result = JSONPrimitive(TEST_RESULT)
                 )
@@ -87,7 +87,7 @@ class SafeToolTest {
                     tool = toolCall.tool,
                     toolArgs = toolCall.contentJson.toKoogJSONObject(),
                     toolDescription = null,
-                    content = TEST_ERROR,
+                    output = TEST_ERROR,
                     resultKind = ToolResultKind.Failure(Exception(TEST_ERROR)),
                     result = null,
                 )
@@ -145,7 +145,7 @@ class SafeToolTest {
             tool = EchoTool.name,
             toolArgs = JSONObject(emptyMap()),
             toolDescription = null,
-            content = "Bad result",
+            output = "Bad result",
             resultKind = ToolResultKind.Success,
             result = badResult.toKoogJSONElement(),
         )
@@ -230,7 +230,7 @@ class SafeToolTest {
                         tool = toolCall.tool,
                         toolArgs = toolCall.contentJson.toKoogJSONObject(),
                         toolDescription = null,
-                        content = "Success: $result",
+                        output = "Success: $result",
                         resultKind = ToolResultKind.Success,
                         result = JSONPrimitive(result)
                     )
@@ -240,7 +240,7 @@ class SafeToolTest {
                         tool = toolCall.tool,
                         toolArgs = toolCall.contentJson.toKoogJSONObject(),
                         toolDescription = null,
-                        content = "Error: ${e.message}",
+                        output = "Error: ${e.message}",
                         resultKind = ToolResultKind.Failure(e),
                         result = null
                     )

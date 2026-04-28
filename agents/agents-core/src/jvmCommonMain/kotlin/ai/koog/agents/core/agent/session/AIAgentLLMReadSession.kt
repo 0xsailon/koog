@@ -59,8 +59,8 @@ public actual class AIAgentLLMReadSession actual constructor(
         prompt: Prompt,
         tools: List<ToolDescriptor>,
         executorService: ExecutorService? = null
-    ): List<Message.Response> = config.runOnStrategyDispatcher(executorService) {
-        executeMultiple(prompt, tools)
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
+        execute(prompt, tools)
     }
 
     /**
@@ -81,7 +81,7 @@ public actual class AIAgentLLMReadSession actual constructor(
         prompt: Prompt,
         tools: List<ToolDescriptor>,
         executorService: ExecutorService? = null
-    ): Message.Response =
+    ): Message.Assistant =
         config.runOnStrategyDispatcher(executorService) {
             executeSingle(prompt, tools)
         }
@@ -97,8 +97,8 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLMMultipleWithoutTools(
         executorService: ExecutorService? = null
-    ): List<Message.Response> = config.runOnStrategyDispatcher(executorService) {
-        requestLLMMultipleWithoutTools()
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
+        requestLLMMWithoutTools()
     }
 
     /**
@@ -112,7 +112,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLMWithoutTools(
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLMWithoutTools()
     }
 
@@ -128,7 +128,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLMOnlyCallingTools(
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLMOnlyCallingTools()
     }
 
@@ -148,7 +148,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLMMultipleOnlyCallingTools(
         executorService: ExecutorService? = null
-    ): List<Message.Response> = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLMMultipleOnlyCallingTools()
     }
 
@@ -166,7 +166,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     public fun requestLLMForceOneTool(
         tool: ToolDescriptor,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLMForceOneTool(tool)
     }
 
@@ -183,7 +183,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     public fun requestLLMForceOneTool(
         tool: Tool<*, *>,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLMForceOneTool(tool)
     }
 
@@ -199,7 +199,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLM(
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLM()
     }
 
@@ -248,7 +248,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLMMultiple(
         executorService: ExecutorService? = null
-    ): List<Message.Response> = config.runOnStrategyDispatcher(executorService) {
+    ): Message.Assistant = config.runOnStrategyDispatcher(executorService) {
         requestLLMMultiple()
     }
 
@@ -322,7 +322,7 @@ public actual class AIAgentLLMReadSession actual constructor(
     @JvmOverloads
     public fun requestLLMMultipleChoices(
         executorService: ExecutorService? = null
-    ): List<LLMChoice> = config.runOnStrategyDispatcher(executorService) {
+    ): LLMChoice = config.runOnStrategyDispatcher(executorService) {
         requestLLMMultipleChoices()
     }
 }

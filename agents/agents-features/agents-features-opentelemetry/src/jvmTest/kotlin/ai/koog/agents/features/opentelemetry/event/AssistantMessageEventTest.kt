@@ -3,6 +3,7 @@ package ai.koog.agents.features.opentelemetry.event
 import ai.koog.agents.features.opentelemetry.attribute.CommonAttributes
 import ai.koog.agents.features.opentelemetry.mock.MockLLMProvider
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.utils.time.KoogClock
 import kotlinx.serialization.json.buildJsonObject
@@ -16,7 +17,7 @@ class AssistantMessageEventTest {
     //region Attributes
 
     @Test
-    fun `test assistant message attributes`() {
+    fun testAssistantMessageAttributes() {
         val expectedMessage = createTestAssistantMessage("Test message")
         val llmProvider = MockLLMProvider()
 
@@ -38,8 +39,9 @@ class AssistantMessageEventTest {
     //region Body Fields
 
     @Test
-    fun `test tool call message`() {
-        val expectedMessage = createTestToolCallMessage("test-id", "test-tool", "Test message")
+    fun testToolCallMessage() {
+        val toolCallPart = MessagePart.Tool.Call(id = "test-id", tool = "test-tool", args = "Test message")
+        val expectedMessage = createTestAssistantMessageWithToolCall(toolCallPart)
 
         val assistantMessageEvent = AssistantMessageEvent(
             provider = MockLLMProvider(),
@@ -47,8 +49,8 @@ class AssistantMessageEventTest {
         )
 
         val expectedBodyFields = listOf(
-            EventBodyFields.Role(role = Message.Role.Tool),
-            EventBodyFields.ToolCalls(tools = listOf(expectedMessage))
+            EventBodyFields.Role(role = Message.Role.Assistant),
+            EventBodyFields.ToolCalls(tools = listOf(toolCallPart))
         )
 
         assertEquals(expectedBodyFields.size, assistantMessageEvent.bodyFields.size)
@@ -56,8 +58,9 @@ class AssistantMessageEventTest {
     }
 
     @Test
-    fun `test assistant message`() {
-        val expectedMessage = createTestAssistantMessage("Test message")
+    fun testAssistantMessage() {
+        val content = "Test message"
+        val expectedMessage = createTestAssistantMessage(content)
 
         val assistantMessageEvent = AssistantMessageEvent(
             provider = MockLLMProvider(),
@@ -66,7 +69,7 @@ class AssistantMessageEventTest {
 
         val expectedBodyFields = listOf(
             EventBodyFields.Role(role = expectedMessage.role),
-            EventBodyFields.Content(content = expectedMessage.content)
+            EventBodyFields.Content(content = content)
         )
 
         assertEquals(expectedBodyFields.size, assistantMessageEvent.bodyFields.size)
@@ -78,8 +81,9 @@ class AssistantMessageEventTest {
     //region Arguments Tests
 
     @Test
-    fun `test assistant message with arguments`() {
-        val expectedMessage = createTestAssistantMessage("Test message")
+    fun testAssistantMessageWithArguments() {
+        val content = "Test message"
+        val expectedMessage = createTestAssistantMessage(content)
         val args = buildJsonObject {
             put("string", "value")
             put("integer", 42)
@@ -93,7 +97,7 @@ class AssistantMessageEventTest {
 
         val expectedBodyFields = listOf(
             EventBodyFields.Role(role = expectedMessage.role),
-            EventBodyFields.Content(content = expectedMessage.content),
+            EventBodyFields.Content(content = content),
             EventBodyFields.Arguments(args)
         )
 
@@ -102,8 +106,9 @@ class AssistantMessageEventTest {
     }
 
     @Test
-    fun `test tool call message ignores arguments`() {
-        val expectedMessage = createTestToolCallMessage("test-id", "test-tool", "Test message")
+    fun testToolCallMessageIgnoresArguments() {
+        val toolCallPart = MessagePart.Tool.Call(id = "test-id", tool = "test-tool", args = "Test message")
+        val expectedMessage = createTestAssistantMessageWithToolCall(toolCallPart)
         val args = buildJsonObject { put("ignored", true) }
 
         val assistantMessageEvent = AssistantMessageEvent(
@@ -113,8 +118,8 @@ class AssistantMessageEventTest {
         )
 
         val expectedBodyFields = listOf(
-            EventBodyFields.Role(role = Message.Role.Tool),
-            EventBodyFields.ToolCalls(tools = listOf(expectedMessage))
+            EventBodyFields.Role(role = Message.Role.Assistant),
+            EventBodyFields.ToolCalls(tools = listOf(toolCallPart))
         )
 
         assertEquals(expectedBodyFields.size, assistantMessageEvent.bodyFields.size)
@@ -125,16 +130,14 @@ class AssistantMessageEventTest {
 
     //region Private Methods
 
-    private fun createTestAssistantMessage(content: String): Message.Response = Message.Assistant(
+    private fun createTestAssistantMessage(content: String): Message.Assistant = Message.Assistant(
         content = content,
         metaInfo = ResponseMetaInfo(KoogClock.System.now())
     )
 
-    private fun createTestToolCallMessage(id: String, tool: String, content: String): Message.Tool.Call =
-        Message.Tool.Call(
-            id = id,
-            tool = tool,
-            content = content,
+    private fun createTestAssistantMessageWithToolCall(toolCallPart: MessagePart.Tool.Call): Message.Assistant =
+        Message.Assistant(
+            parts = listOf(toolCallPart),
             metaInfo = ResponseMetaInfo(KoogClock.System.now())
         )
 

@@ -32,7 +32,7 @@ public class JavaPlannerAIAgentIntegrationTest extends KoogJavaTestBase {
 
         @Override
         protected String executeStep(AIAgentPlannerContext context, String state, String plan) {
-            Message.Response response = context.requestLLM(state, true);
+            Message.Assistant response = context.requestLLM(state, true);
 
             int maxIterations = 5;
             for (int i = 0; i < maxIterations && response instanceof Message.Tool.Call; i++) {

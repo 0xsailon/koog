@@ -26,7 +26,6 @@ import ai.koog.prompt.executor.ollama.client.dto.OllamaToolDTO
 import ai.koog.prompt.executor.ollama.client.dto.OllamaToolDTO.Definition
 import ai.koog.prompt.executor.ollama.client.dto.extractOllamaJsonFormat
 import ai.koog.prompt.executor.ollama.client.dto.generateToolCallId
-import ai.koog.prompt.executor.ollama.client.dto.getToolCalls
 import ai.koog.prompt.executor.ollama.client.dto.toOllamaChatMessages
 import ai.koog.prompt.executor.ollama.client.dto.toOllamaModelCard
 import ai.koog.prompt.executor.ollama.tools.json.OllamaToolDescriptorSchemaGenerator
@@ -34,6 +33,7 @@ import ai.koog.prompt.llm.LLMCapability
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.streaming.StreamFrame
@@ -61,6 +61,7 @@ import io.ktor.utils.io.readUTF8Line
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.jvm.JvmOverloads
 
 /**
@@ -188,7 +189,7 @@ public class OllamaClient @JvmOverloads constructor(
         prompt: Prompt,
         model: LLModel,
         tools: List<ToolDescriptor>
-    ): List<Message.Response> {
+    ): Message.Assistant {
         require(model.provider == LLMProvider.Ollama) { "Model not supported by Ollama" }
 
         val ollamaTools = if (tools.isNotEmpty()) {
@@ -245,10 +246,9 @@ public class OllamaClient @JvmOverloads constructor(
         }
     }
 
-    private fun parseResponse(response: OllamaChatResponseDTO): List<Message.Response> {
-        val messages = response.message ?: return emptyList()
-        val content = messages.content
-        val toolCalls = messages.toolCalls ?: emptyList()
+    private fun parseResponse(response: OllamaChatResponseDTO): Message.Assistant {
+        val messages = response.message
+            ?: throw LLMClientException(clientName = clientName, message = "Missing message in Ollama response")
 
         // Get token counts from the response, or use null if not available
         val promptTokenCount = response.promptEvalCount
@@ -269,29 +269,24 @@ public class OllamaClient @JvmOverloads constructor(
             outputTokensCount = responseTokenCount,
         )
 
-        return when {
-            content.isNotEmpty() && toolCalls.isEmpty() -> {
-                listOf(
-                    Message.Assistant(
-                        content = content,
-                        metaInfo = responseMetadata
+        return Message.Assistant(
+            parts = buildList {
+                messages.content.takeIf { it.isNotEmpty() }?.let { add(MessagePart.Text(it)) }
+                messages.toolCalls?.forEachIndexed { index, toolCall ->
+                    val name = toolCall.function.name
+                    val content = Json.encodeToString(toolCall.function.arguments)
+                    val id = generateToolCallId(name, content, index)
+                    add(
+                        MessagePart.Tool.Call(
+                            id = id,
+                            tool = name,
+                            args = toolCall.function.arguments.jsonObject,
+                        )
                     )
-                )
-            }
-
-            content.isEmpty() && toolCalls.isNotEmpty() -> {
-                messages.getToolCalls(responseMetadata)
-            }
-
-            else -> {
-                val toolCallMessages = messages.getToolCalls(responseMetadata)
-                val assistantMessage = Message.Assistant(
-                    content = content,
-                    metaInfo = responseMetadata
-                )
-                toolCallMessages + listOf(assistantMessage)
-            }
-        }
+                }
+            },
+            metaInfo = responseMetadata,
+        )
     }
 
     override fun executeStreaming(
@@ -472,15 +467,15 @@ public class OllamaClient @JvmOverloads constructor(
 
         val responses = execute(prompt, model)
 
-        check(responses.size == 1) { "Moderation model from Ollama must return a single response" }
-        val singleResponse = responses.single()
-        check(singleResponse is Message.Assistant) {
+        check(responses.parts.size == 1) { "Moderation model from Ollama must return a single response" }
+        val singleResponse = responses.parts.single()
+        check(singleResponse is MessagePart.Text) {
             "Moderation model from Ollama must return an assistant message" +
                 " (actual response: ${singleResponse::class.simpleName})"
         }
-        val contentLines = singleResponse.content.lines()
+        val contentLines = singleResponse.text.lines()
         val moderationResult = contentLines.first()
-        val hazardCategories = singleResponse.content.removePrefix(moderationResult)
+        val hazardCategories = singleResponse.text.removePrefix(moderationResult)
 
         return ModerationResult(
             isHarmful = parseModerationResult(moderationResult),

@@ -69,7 +69,7 @@ class LongTermMemoryIngestionTest {
             prompt: Prompt,
             model: LLModel,
             tools: List<ToolDescriptor>
-        ): List<Message.Response> {
+        ): List<Message.Assistant> {
             return listOf(Message.Assistant("non-streaming", ResponseMetaInfo.Empty))
         }
 
@@ -402,7 +402,7 @@ class LongTermMemoryIngestionTest {
                 prompt: Prompt,
                 model: LLModel,
                 tools: List<ToolDescriptor>
-            ): List<Message.Response> {
+            ): List<Message.Assistant> {
                 storageSizeDuringLLMCall = storage.size()
                 return listOf(Message.Assistant("Response that should not be stored yet", ResponseMetaInfo.Empty))
             }

@@ -1,12 +1,13 @@
 package ai.koog.agents.features.opentelemetry.event
 
 import ai.koog.agents.utils.HiddenString
+import ai.koog.prompt.message.MessagePart
 import kotlinx.serialization.json.JsonObject
 
 internal object EventBodyFields {
 
     data class ToolCalls(
-        private val tools: List<ai.koog.prompt.message.Message.Tool.Call>
+        private val tools: List<MessagePart.Tool.Call>
     ) : EventBodyField() {
         override val key: String = "tool_calls"
         override val value: List<Map<String, Any>>
@@ -15,7 +16,7 @@ internal object EventBodyFields {
                     buildMap {
                         val functionMap = buildMap {
                             put("name", HiddenString(tool.tool))
-                            put("arguments", HiddenString(tool.content))
+                            put("arguments", HiddenString(tool.args))
                         }
 
                         put("function", functionMap)
@@ -36,9 +37,10 @@ internal object EventBodyFields {
         override val value: HiddenString = HiddenString(content)
     }
 
-    data class Role(private val role: ai.koog.prompt.message.Message.Role) : EventBodyField() {
+    data class Role(override val value: String) : EventBodyField() {
         override val key: String = "role"
-        override val value: String = role.name.lowercase()
+
+        constructor(role: ai.koog.prompt.message.Message.Role) : this(role.name.lowercase())
     }
 
     data class Index(private val index: Int) : EventBodyField() {

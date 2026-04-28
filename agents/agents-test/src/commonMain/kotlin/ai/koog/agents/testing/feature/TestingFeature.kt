@@ -35,6 +35,7 @@ import ai.koog.agents.testing.tools.AIAgentContextMockBuilderBase
 import ai.koog.agents.testing.tools.DummyAIAgentContext
 import ai.koog.agents.testing.tools.MockEnvironment
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.prompt.tokenizer.Tokenizer
 import ai.koog.serialization.JSONSerializer
@@ -682,7 +683,8 @@ public class Testing {
                 subgraph: NodeReference.SubgraphNode<I, O>,
                 checkSubgraph: SubgraphAssertionsBuilder<I, O>.() -> Unit = {}
             ) {
-                val assertions = SubgraphAssertionsBuilder(subgraph, clock, tokenizer, serializer).apply(checkSubgraph).build()
+                val assertions =
+                    SubgraphAssertionsBuilder(subgraph, clock, tokenizer, serializer).apply(checkSubgraph).build()
                 subgraphAssertions.add(SubGraphAssertions(subgraph, assertions))
             }
 
@@ -949,7 +951,12 @@ public class Testing {
         ): Testing {
             val testing = Testing()
             pipeline.interceptEnvironmentCreated(this) { eventContext, environment ->
-                MockEnvironment(eventContext.agent.toolRegistry, eventContext.agent.promptExecutor, pipeline.config.serializer, environment)
+                MockEnvironment(
+                    eventContext.agent.toolRegistry,
+                    eventContext.agent.promptExecutor,
+                    pipeline.config.serializer,
+                    environment
+                )
             }
 
             if (config.enableGraphTesting) {
@@ -1164,18 +1171,15 @@ public class Testing {
  * }
  * ```
  */
-public fun <Args> Testing.Config.SubgraphAssertionsBuilder<*, *>.toolCallMessage(
+public fun <Args> Testing.Config.SubgraphAssertionsBuilder<*, *>.toolCallMessagePart(
     tool: Tool<Args, *>,
     args: Args
-): Message.Tool.Call {
+): MessagePart.Tool.Call {
     val toolContent = tool.encodeArgsToString(args, serializer)
-    val tokenCount = tokenizer?.countTokens(toolContent)
-
-    return Message.Tool.Call(
+    return MessagePart.Tool.Call(
         id = null,
         tool = tool.name,
-        content = toolContent,
-        metaInfo = ResponseMetaInfo.create(clock, outputTokensCount = tokenCount)
+        args = toolContent,
     )
 }
 
@@ -1194,6 +1198,34 @@ public fun Testing.Config.SubgraphAssertionsBuilder<*, *>.assistantMessage(
 
     return Message.Assistant(
         content = text,
+        finishReason = finishReason,
+        metaInfo = ResponseMetaInfo.create(clock, outputTokensCount = tokenCount)
+    )
+}
+
+/**
+ * Creates an assistant message with the provided text and finish reason.
+ *
+ * @param text The content of the assistant message.
+ * @param finishReason The reason indicating why the message was concluded. Defaults to null.
+ * @return A new instance of Message.Assistant containing the provided content, finish reason, and associated metadata.
+ */
+public fun <Args> Testing.Config.SubgraphAssertionsBuilder<*, *>.assistantMessage(
+    tool: Tool<Args, *>,
+    args: Args,
+    finishReason: String? = null
+): Message.Assistant {
+    val toolContent = tool.encodeArgsToString(args, serializer)
+    val tokenCount = tokenizer?.countTokens(toolContent)
+
+    return Message.Assistant(
+        parts = listOf(
+            MessagePart.Tool.Call(
+                id = null,
+                tool = tool.name,
+                args = toolContent,
+            )
+        ),
         finishReason = finishReason,
         metaInfo = ResponseMetaInfo.create(clock, outputTokensCount = tokenCount)
     )
@@ -1230,7 +1262,7 @@ public fun <TArgs, TResult> Testing.Config.SubgraphAssertionsBuilder<*, *>.toolR
         tool = tool.name,
         toolArgs = tool.encodeArgs(args, serializer),
         toolDescription = tool.descriptor.description,
-        content = tool.encodeResultToString(result, serializer),
+        output = tool.encodeResultToString(result, serializer),
         resultKind = ToolResultKind.Success,
         result = tool.encodeResult(result, serializer)
     )
@@ -1266,7 +1298,7 @@ public fun <TArgs> Testing.Config.SubgraphAssertionsBuilder<*, *>.toolResult(
         tool = tool.name,
         toolArgs = tool.encodeArgs(args, serializer),
         toolDescription = tool.descriptor.description,
-        content = tool.encodeResultToString(result, serializer),
+        output = tool.encodeResultToString(result, serializer),
         resultKind = ToolResultKind.Success,
         result = tool.encodeResult(result, serializer)
     )

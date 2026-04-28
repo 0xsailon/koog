@@ -22,13 +22,11 @@ import ai.koog.agents.core.utils.runOnLLMDispatcher
 import ai.koog.agents.core.utils.runOnStrategyDispatcher
 import ai.koog.prompt.executor.model.StructureFixingParser
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.streaming.StreamFrame
 import ai.koog.prompt.structure.StructureDefinition
 import ai.koog.prompt.structure.StructuredResponse
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
 import java.util.concurrent.ExecutorService
@@ -169,7 +167,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
      *                       Defaults to true.
      * @param executorService An optional `ExecutorService` instance that enables custom thread management for the request.
      *                        Defaults to null.
-     * @return A [Message.Response] object containing the message received from the LLM.
+     * @return A [Message.Assistant] object containing the message received from the LLM.
      */
     @JavaAPI
     @JvmOverloads
@@ -177,8 +175,8 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         message: String,
         allowToolCalls: Boolean = true,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnLLMDispatcher(executorService) {
-        requestLLM(message, allowToolCalls)
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
+        this@AIAgentFunctionalContextBase.requestLLM(message, allowToolCalls)
     }
 
     /**
@@ -241,27 +239,27 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         )
 
         Flow.Publisher { subscriber ->
-            val scope = CoroutineScope(context)
-            val job = scope.launch {
-                try {
-                    requestLLMStreaming(message, structureDefinition).collect { frame ->
-                        subscriber.onNext(frame)
-                    }
-                    subscriber.onComplete()
-                } catch (e: Throwable) {
-                    subscriber.onError(e)
-                }
-            }
-            subscriber.onSubscribe(object : Flow.Subscription {
-                override fun request(n: Long) {
-                    // Basic implementation without backpressure handling for simplicity.
-                    // For production, consider adding flow control (e.g., using a shared flow or buffer).
-                }
-
-                override fun cancel() {
-                    job.cancel()
-                }
-            })
+//            val scope = CoroutineScope(context)
+//            val job = scope.launch {
+//                try {
+//                    requestLLMStreaming(message, structureDefinition).collect { frame ->
+//                        subscriber.onNext(frame)
+//                    }
+//                    subscriber.onComplete()
+//                } catch (e: Throwable) {
+//                    subscriber.onError(e)
+//                }
+//            }
+//            subscriber.onSubscribe(object : Flow.Subscription {
+//                override fun request(n: Long) {
+//                    // Basic implementation without backpressure handling for simplicity.
+//                    // For production, consider adding flow control (e.g., using a shared flow or buffer).
+//                }
+//
+//                override fun cancel() {
+//                    job.cancel()
+//                }
+//            })
         }
     }
 
@@ -270,15 +268,15 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
      *
      * @param message The input message to be sent to the LLM.
      * @param executorService An optional `ExecutorService` instance for managing thread execution. Defaults to `null`.
-     * @return A list of [Message.Response] objects containing the LLM responses to the provided message.
+     * @return A list of [Message.Assistant] objects containing the LLM responses to the provided message.
      */
     @JavaAPI
     @JvmOverloads
     public fun requestLLMMultiple(
         message: String,
         executorService: ExecutorService? = null
-    ): List<Message.Response> = config.runOnLLMDispatcher(executorService) {
-        requestLLMMultiple(message)
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
+        requestLLM(message)
     }
 
     /**
@@ -293,7 +291,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
     public fun requestLLMOnlyCallingTools(
         message: String,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnLLMDispatcher(executorService) {
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
         requestLLMOnlyCallingTools(message)
     }
 
@@ -313,7 +311,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         message: String,
         tool: ToolDescriptor,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnLLMDispatcher(executorService) {
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
         requestLLMForceOneTool(message, tool)
     }
 
@@ -332,7 +330,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         message: String,
         tool: Tool<*, *>,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnLLMDispatcher(executorService) {
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
         requestLLMForceOneTool(message, tool)
     }
 
@@ -346,7 +344,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
     @JavaAPI
     @JvmOverloads
     public fun executeTool(
-        toolCall: Message.Tool.Call,
+        toolCall: MessagePart.Tool.Call,
         executorService: ExecutorService? = null
     ): ReceivedToolResult = config.runOnStrategyDispatcher(executorService) {
         executeTool(toolCall)
@@ -363,7 +361,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
     @JavaAPI
     @JvmOverloads
     public fun executeMultipleTools(
-        toolCalls: List<Message.Tool.Call>,
+        toolCalls: List<MessagePart.Tool.Call>,
         parallelTools: Boolean,
         executorService: ExecutorService? = null
     ): List<ReceivedToolResult> = config.runOnStrategyDispatcher(executorService) {
@@ -382,7 +380,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
     public fun sendToolResult(
         toolResult: ReceivedToolResult,
         executorService: ExecutorService? = null
-    ): Message.Response = config.runOnLLMDispatcher(executorService) {
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
         sendToolResult(toolResult)
     }
 
@@ -398,7 +396,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
     public fun sendMultipleToolResults(
         results: List<ReceivedToolResult>,
         executorService: ExecutorService? = null
-    ): List<Message.Response> = config.runOnLLMDispatcher(executorService) {
+    ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
         sendMultipleToolResults(results)
     }
 

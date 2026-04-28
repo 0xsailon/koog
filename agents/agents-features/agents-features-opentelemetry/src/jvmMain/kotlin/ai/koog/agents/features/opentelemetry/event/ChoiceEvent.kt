@@ -4,11 +4,12 @@ import ai.koog.agents.features.opentelemetry.attribute.CommonAttributes
 import ai.koog.agents.features.opentelemetry.attribute.GenAIAttributes
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import kotlinx.serialization.json.JsonObject
 
 internal class ChoiceEvent(
     provider: LLMProvider,
-    private val message: Message.Response,
+    private val message: Message.Assistant,
     private val arguments: JsonObject? = null,
     val index: Int? = null,
 ) : GenAIAgentEvent() {
@@ -20,31 +21,18 @@ internal class ChoiceEvent(
         // Body Fields
         index?.let { index -> addBodyField(EventBodyFields.Index(index)) }
 
-        when (message) {
-            is Message.Assistant -> {
-                message.finishReason?.let { reason ->
-                    addBodyField(EventBodyFields.FinishReason(reason))
-                }
-
-                addBodyField(
-                    EventBodyFields.Message(
-                        role = message.role,
-                        content = message.content
-                    )
-                )
-
-                arguments?.let { addBodyField(EventBodyFields.Arguments(it)) }
+        val toolCalls = message.parts.filterIsInstance<MessagePart.Tool.Call>()
+        if (toolCalls.isNotEmpty()) {
+            addBodyField(EventBodyFields.Role(role = message.role))
+            addBodyField(EventBodyFields.ToolCalls(tools = toolCalls))
+            addBodyField(EventBodyFields.FinishReason(GenAIAttributes.Response.FinishReasonType.ToolCalls.id))
+        } else {
+            message.finishReason?.let { reason ->
+                addBodyField(EventBodyFields.FinishReason(reason))
             }
-
-            is Message.Reasoning -> {
-                addBodyField(EventBodyFields.Message(message.role, message.content))
-            }
-
-            is Message.Tool.Call -> {
-                addBodyField(EventBodyFields.Role(role = message.role))
-                addBodyField(EventBodyFields.ToolCalls(tools = listOf(message)))
-                addBodyField(EventBodyFields.FinishReason(GenAIAttributes.Response.FinishReasonType.ToolCalls.id))
-            }
+            val textContent = message.parts.filterIsInstance<MessagePart.Text>().joinToString("\n") { it.text }
+            addBodyField(EventBodyFields.Message(role = message.role, content = textContent))
+            arguments?.let { addBodyField(EventBodyFields.Arguments(it)) }
         }
     }
 

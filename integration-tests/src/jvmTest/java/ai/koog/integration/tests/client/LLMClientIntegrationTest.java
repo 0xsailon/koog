@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class LLMClientIntegrationTest extends KoogJavaTestBase {
 
-    private void assertValidResponse(List<Message.Response> responses) {
+    private void assertValidResponse(List<Message.Assistant> responses) {
         assertNotNull(responses);
         assertFalse(responses.isEmpty());
         assertInstanceOf(Message.Assistant.class, responses.get(0));
@@ -40,7 +40,7 @@ public class LLMClientIntegrationTest extends KoogJavaTestBase {
             .user("Say 'Hello from OpenAI'")
             .build();
 
-        List<Message.Response> responses = client.execute(prompt, OpenAIModels.Chat.GPT4o);
+        List<Message.Assistant> responses = client.execute(prompt, OpenAIModels.Chat.GPT4o);
 
         assertValidResponse(responses);
     }
@@ -57,7 +57,7 @@ public class LLMClientIntegrationTest extends KoogJavaTestBase {
             .user("Say 'Hello from Anthropic'")
             .build();
 
-        List<Message.Response> responses = client.execute(prompt, AnthropicModels.Haiku_4_5, Collections.emptyList());
+        List<Message.Assistant> responses = client.execute(prompt, AnthropicModels.Haiku_4_5, Collections.emptyList());
 
         assertValidResponse(responses);
     }
@@ -82,7 +82,7 @@ public class LLMClientIntegrationTest extends KoogJavaTestBase {
             .user("Say 'OpenAI response'")
             .build();
 
-        List<Message.Response> openAIResponses = executor.execute(openAIPrompt, OpenAIModels.Chat.GPT4o, Collections.emptyList());
+        List<Message.Assistant> openAIResponses = executor.execute(openAIPrompt, OpenAIModels.Chat.GPT4o, Collections.emptyList());
         assertValidResponse(openAIResponses);
 
         Prompt anthropicPrompt = Prompt.builder("test-multi-anthropic")
@@ -90,7 +90,7 @@ public class LLMClientIntegrationTest extends KoogJavaTestBase {
             .user("Say 'Anthropic response'")
             .build();
 
-        List<Message.Response> anthropicResponses = executor.execute(anthropicPrompt, AnthropicModels.Haiku_4_5);
+        List<Message.Assistant> anthropicResponses = executor.execute(anthropicPrompt, AnthropicModels.Haiku_4_5);
         assertValidResponse(anthropicResponses);
     }
 }

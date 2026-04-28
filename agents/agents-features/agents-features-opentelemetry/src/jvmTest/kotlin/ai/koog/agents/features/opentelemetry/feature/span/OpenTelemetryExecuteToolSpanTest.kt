@@ -19,6 +19,7 @@ import ai.koog.agents.features.opentelemetry.feature.OpenTelemetryTestBase
 import ai.koog.agents.features.opentelemetry.mock.TestGetWeatherTool
 import ai.koog.agents.testing.tools.getMockExecutor
 import ai.koog.agents.utils.HiddenString
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -127,14 +128,14 @@ class OpenTelemetryExecuteToolSpanTest : OpenTelemetryTestBase() {
             edge(
                 nodeCallLLM forwardTo nodeFinish
                     onMultipleAssistantMessages { true }
-                    transformed { it.joinToString("\n") { message -> message.content } }
+                    transformed { it.joinToString("\n") { message -> message.parts.filterIsInstance<MessagePart.Text>().joinToString("") { it.text } } }
             )
             edge(nodeExecuteTool forwardTo nodeSendToolResult)
             edge(nodeSendToolResult forwardTo nodeExecuteTool onMultipleToolCalls { true })
             edge(
                 nodeSendToolResult forwardTo nodeFinish
                     onMultipleAssistantMessages { true }
-                    transformed { it.joinToString("\n") { message -> message.content } }
+                    transformed { it.joinToString("\n") { message -> message.parts.filterIsInstance<MessagePart.Text>().joinToString("") { it.text } } }
             )
         }
 

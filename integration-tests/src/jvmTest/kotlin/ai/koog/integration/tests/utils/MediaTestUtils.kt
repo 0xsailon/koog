@@ -270,14 +270,14 @@ object MediaTestUtils {
         return testResourcesDir.resolve("video.mp4")
     }
 
-    fun checkExecutorMediaResponse(response: Message.Response) {
+    fun checkExecutorMediaResponse(response: Message.Assistant) {
         with(response) {
             checkResponseBasic(this)
             content.lowercase() shouldNotContain "error processing" shouldNotContain "unable to process" shouldNotContain "cannot process"
         }
     }
 
-    fun checkImageAnalysisResponse(response: Message.Response) {
+    fun checkImageAnalysisResponse(response: Message.Assistant) {
         checkExecutorMediaResponse(response)
 
         val content = response.content.lowercase()
@@ -290,7 +290,7 @@ object MediaTestUtils {
         visualDetailHints.any(content::contains).shouldBe(true)
     }
 
-    fun checkResponseBasic(response: Message.Response) {
+    fun checkResponseBasic(response: Message.Assistant) {
         response shouldNotBeNull {
             content.shouldNotBeBlank()
             content.length shouldBeGreaterThan 20

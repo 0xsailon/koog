@@ -40,7 +40,7 @@ class MultipleLLMPromptExecutorMockTest {
             prompt: Prompt,
             model: LLModel,
             tools: List<ToolDescriptor>
-        ): List<Message.Response> {
+        ): List<Message.Assistant> {
             return listOf(Message.Assistant("OpenAI response", ResponseMetaInfo.create(mockClock)))
         }
 
@@ -58,7 +58,7 @@ class MultipleLLMPromptExecutorMockTest {
             prompt: Prompt,
             model: LLModel,
             tools: List<ToolDescriptor>
-        ): List<Message.Response> {
+        ): List<Message.Assistant> {
             return listOf(Message.Assistant("Anthropic response", ResponseMetaInfo.create(mockClock)))
         }
 
@@ -76,7 +76,7 @@ class MultipleLLMPromptExecutorMockTest {
             prompt: Prompt,
             model: LLModel,
             tools: List<ToolDescriptor>
-        ): List<Message.Response> {
+        ): List<Message.Assistant> {
             return listOf(Message.Assistant("Gemini response", ResponseMetaInfo.create(mockClock)))
         }
 

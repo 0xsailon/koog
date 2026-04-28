@@ -35,7 +35,7 @@ public actual abstract class PromptExecutor actual constructor() : PromptExecuto
         model: LLModel,
         tools: List<ToolDescriptor> = emptyList(),
         executorService: ExecutorService? = null
-    ): List<Message.Response> = runOnIOBoundDispatcher(executorService) {
+    ): Message.Assistant = runOnIOBoundDispatcher(executorService) {
         execute(prompt, model, tools)
     }
 
@@ -56,7 +56,7 @@ public actual abstract class PromptExecutor actual constructor() : PromptExecuto
         model: LLModel,
         tools: List<ToolDescriptor> = emptyList(),
         executorService: ExecutorService? = null
-    ): List<LLMChoice> = runOnIOBoundDispatcher(executorService) {
+    ): LLMChoice = runOnIOBoundDispatcher(executorService) {
         executeMultipleChoices(prompt, model, tools)
     }
 

@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class TestLLMExecutor(val clock: KoogClock) : PromptExecutor() {
-    override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): List<Message.Response> {
+    override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): List<Message.Assistant> {
         return listOf(handlePrompt(prompt))
     }
 
@@ -26,7 +26,7 @@ class TestLLMExecutor(val clock: KoogClock) : PromptExecutor() {
         handlePrompt(prompt).toStreamFrames().forEach { emit(it) }
     }
 
-    private fun handlePrompt(prompt: Prompt): Message.Response {
+    private fun handlePrompt(prompt: Prompt): Message.Assistant {
         // For a compression test, return a summary
         if (prompt.messages.any { it.content.contains("Summarize all the main achievements") }) {
             return Message.Assistant(

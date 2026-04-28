@@ -85,7 +85,7 @@ fun receivedToolResult(
     tool = toolName,
     toolArgs = toolArgs,
     toolDescription = toolDescription,
-    content = content,
+    output = content,
     resultKind = ToolResultKind.Success,
     result = result,
 )

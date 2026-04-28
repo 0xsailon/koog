@@ -9,11 +9,11 @@ import ai.koog.agents.core.agent.singleRunStrategy
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.subgraph
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.getToolCall
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.agents.features.eventHandler.feature.EventHandler
@@ -105,14 +105,14 @@ class OllamaAgentIntegrationTest : AIAgentTestBase() {
             }
 
             val callLLM by nodeLLMRequest(allowToolCalls = true)
-            val callTool by nodeExecuteTool()
+            val callTool by nodeExecuteTools()
             val sendToolResult by nodeLLMSendToolResult()
 
             edge(nodeStart forwardTo definePrompt transformed {})
             edge(definePrompt forwardTo callLLM transformed { agentInput<String>() })
-            edge(callLLM forwardTo callTool onToolCall { true })
+            edge(callLLM forwardTo callTool getToolCall { true })
             edge(callTool forwardTo sendToolResult)
-            edge(sendToolResult forwardTo callTool onToolCall { true })
+            edge(sendToolResult forwardTo callTool getToolCall { true })
             edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             edge(callLLM forwardTo nodeFinish onAssistantMessage { true })
         }
@@ -144,14 +144,14 @@ class OllamaAgentIntegrationTest : AIAgentTestBase() {
             }
 
             val callLLM by nodeLLMRequest(allowToolCalls = true)
-            val callTool by nodeExecuteTool()
+            val callTool by nodeExecuteTools()
             val sendToolResult by nodeLLMSendToolResult()
 
             edge(nodeStart forwardTo definePrompt transformed {})
             edge(definePrompt forwardTo callLLM transformed { agentInput<String>() })
-            edge(callLLM forwardTo callTool onToolCall { true })
+            edge(callLLM forwardTo callTool getToolCall { true })
             edge(callTool forwardTo sendToolResult)
-            edge(sendToolResult forwardTo callTool onToolCall { true })
+            edge(sendToolResult forwardTo callTool getToolCall { true })
             edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             edge(callLLM forwardTo nodeFinish onAssistantMessage { true })
         }

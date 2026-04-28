@@ -174,7 +174,7 @@ public class AIAgentServiceIntegrationTest extends KoogJavaTestBase {
             .systemPrompt("You are a helpful assistant.")
             .functionalStrategy((context, input) -> {
                 String inputStr = (input instanceof String) ? (String) input : String.valueOf(input);
-                Message.Response response = context.requestLLM(inputStr, true);
+                Message.Assistant response = context.requestLLM(inputStr, true);
                 if (response instanceof Message.Assistant) {
                     return response.getContent();
                 }

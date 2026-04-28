@@ -74,7 +74,7 @@ public class JavaAIAgentGraphStrategyTest extends KoogJavaTestBase {
 
         var llm = AIAgentNode.llmRequest(true, "llm");
         var extractContent = AIAgentNode.builder("extract-content")
-            .withInput(Message.Response.class)
+            .withInput(Message.Assistant.class)
             .withOutput(String.class)
             .withAction((response, ctx) -> assistantContent(response, ""))
             .build();
@@ -344,7 +344,7 @@ public class JavaAIAgentGraphStrategyTest extends KoogJavaTestBase {
 
         var firstLlm = AIAgentNode.llmRequest(true, "first-llm");
         var extractFirstResponse = AIAgentNode.builder("extract-first-response")
-            .withInput(Message.Response.class)
+            .withInput(Message.Assistant.class)
             .withOutput(String.class)
             .withAction((response, ctx) -> assistantContent(response, "No response"))
             .build();
@@ -355,7 +355,7 @@ public class JavaAIAgentGraphStrategyTest extends KoogJavaTestBase {
             .build();
         var finalLlm = AIAgentNode.llmRequest(true, "final-llm");
         var extractFinalResponse = AIAgentNode.builder("extract-final-response")
-            .withInput(Message.Response.class)
+            .withInput(Message.Assistant.class)
             .withOutput(String.class)
             .withAction((response, ctx) -> assistantContent(response, ""))
             .build();
@@ -816,7 +816,7 @@ public class JavaAIAgentGraphStrategyTest extends KoogJavaTestBase {
             .toList();
     }
 
-    private static String assistantContent(Message.Response response, String fallback) {
+    private static String assistantContent(Message.Assistant response, String fallback) {
         if (response instanceof Message.Assistant) {
             return (response).getContent();
         }

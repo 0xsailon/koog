@@ -2,7 +2,6 @@ package ai.koog.agents.features.opentelemetry.event
 
 import ai.koog.agents.features.opentelemetry.attribute.CommonAttributes
 import ai.koog.prompt.llm.LLMProvider
-import ai.koog.prompt.message.Message
 
 internal class ToolMessageEvent(
     provider: LLMProvider,
@@ -15,7 +14,7 @@ internal class ToolMessageEvent(
         addAttribute(CommonAttributes.System(provider))
 
         // Body Fields
-        addBodyField(EventBodyFields.Role(role = Message.Role.Tool))
+        addBodyField(EventBodyFields.Role("tool"))
         addBodyField(EventBodyFields.Content(content = content))
         toolCallId?.let { id ->
             addBodyField(EventBodyFields.Id(id = id))

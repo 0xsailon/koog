@@ -12,10 +12,11 @@ import ai.koog.agents.core.dsl.builder.AIAgentSubgraphBuilderBase
 import ai.koog.agents.core.dsl.builder.AIAgentSubgraphDelegate
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.subgraph
+import ai.koog.agents.core.dsl.extension.getToolCalls
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.nodeLLMRequestMultiple
-import ai.koog.agents.core.dsl.extension.nodeLLMSendMultipleToolResults
-import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
+import ai.koog.agents.core.dsl.extension.nodeSendToolReceivedResults
+import ai.koog.agents.core.dsl.extension.onToolCalls
+import ai.koog.agents.core.dsl.extension.toUserMessage
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
 import ai.koog.agents.core.environment.toSafeResult
@@ -27,8 +28,8 @@ import ai.koog.agents.core.tools.schema.getJsonSchema
 import ai.koog.agents.core.tools.schema.toToolParameter
 import ai.koog.prompt.llm.LLMCapability
 import ai.koog.prompt.llm.LLModel
-import ai.koog.prompt.markdown.markdown
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.processor.ResponseProcessor
 import ai.koog.serialization.JSONElement
@@ -694,16 +695,11 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
     }
 
     // Helper node to overcome problems of the current api and repeat less code when writing routing conditions
-    val nodeDecide by node<List<Message.Response>, List<Message.Response>> { it }
+    val nodeDecide by node<Message.Assistant, Message.Assistant> { it }
 
-    val nodeCallLLMDelegate = if (runMode == ToolCalls.SINGLE_RUN_SEQUENTIAL) {
-        nodeLLMRequest().transform { listOf(it) }
-    } else {
-        nodeLLMRequestMultiple()
-    }
-    val nodeCallLLM by nodeCallLLMDelegate
+    val nodeCallLLM by nodeLLMRequest()
 
-    val callToolsHacked by node<List<Message.Tool.Call>, List<ReceivedToolResult>> { toolCalls ->
+    val callToolsHacked by node<List<MessagePart.Tool.Call>, List<ReceivedToolResult>> { toolCalls ->
         val (finishToolCalls, regularToolCalls) = toolCalls.partition { it.tool == finishTool.name }
 
         // Execute finish tool
@@ -732,10 +728,10 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
     }
 
     @OptIn(DetachedPromptExecutorAPI::class)
-    val handleAssistantMessage by node<Message.Assistant, List<Message.Response>> { response ->
+    val handleAssistantMessage by node<Message.Assistant, Message.Assistant> { response ->
         if (llm.model.supports(LLMCapability.ToolChoice)) {
             error(
-                "Subgraph with task must always call tools, but no ${Message.Tool.Call::class.simpleName} was generated, " +
+                "Subgraph with task must always call tools, but no ${MessagePart.Tool.Call::class.simpleName} was generated, " +
                     "got instead: ${response::class.simpleName}"
             )
         }
@@ -754,30 +750,25 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
         llm.writeSession {
             // append a new message to the history with feedback:
             appendPrompt {
-                user {
-                    markdown {
-                        h1("DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.")
-                        h2("IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!")
-                    }
-                }
+                user(
+                    "# DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.\n" +
+                        "## IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!"
+                )
             }
 
-            requestLLMMultiple()
+            requestLLM()
         }
     }
 
-    nodeStart then setupTask then nodeCallLLM then nodeDecide
+    nodeStart then setupTask
+    edge(setupTask forwardTo nodeCallLLM toUserMessage { it })
+    edge(nodeCallLLM forwardTo nodeDecide)
 
-    edge(
-        nodeDecide forwardTo callToolsHacked
-            onCondition { responses -> responses.containsToolCalls() }
-            transformed { responses -> responses.filterIsInstance<Message.Tool.Call>() }
-    )
+    edge(nodeDecide forwardTo callToolsHacked onToolCalls { it.isNotEmpty() } getToolCalls { true })
 
     edge(
         nodeDecide forwardTo handleAssistantMessage
-            onCondition { responses -> responses.filterIsInstance<Message.Assistant>().isNotEmpty() }
-            transformed { responses -> responses.first() as Message.Assistant }
+            onCondition { response -> response.parts.filterIsInstance<MessagePart.Tool.Call>().isEmpty() }
     )
 
     edge(handleAssistantMessage forwardTo nodeDecide)
@@ -787,7 +778,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
         nodeDecide forwardTo nodeFinish transformed {
             throw IllegalStateException(
                 "Unhandled response from LLM. Subgraph with task must always call tools, " +
-                    "but no ${Message.Tool.Call::class.simpleName} was generated, got instead: $it"
+                    "but no ${MessagePart.Tool.Call::class.simpleName} was generated, got instead: $it"
             )
         }
     )
@@ -801,14 +792,8 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
             transformed { toolsResults -> toolsResults.first() }
     )
 
-    if (runMode == ToolCalls.SINGLE_RUN_SEQUENTIAL) {
-        val sendToolResult by nodeLLMSendToolResult()
-        edge(callToolsHacked forwardTo sendToolResult transformed { it.first() })
-        edge(sendToolResult forwardTo nodeDecide transformed { listOf(it) })
-    } else {
-        val sendToolsResults by nodeLLMSendMultipleToolResults()
-        callToolsHacked then sendToolsResults then nodeDecide
-    }
+    val sendToolsResults by nodeSendToolReceivedResults()
+    callToolsHacked then sendToolsResults then nodeDecide
 
     edge(finalizeTask forwardTo nodeFinish)
 }
@@ -847,13 +832,13 @@ public inline fun <reified Input, Output, reified OutputTransformed> AIAgentSubg
 @PublishedApi
 @InternalAgentsApi
 internal suspend fun <Output, OutputTransformed> AIAgentContext.executeFinishTool(
-    toolCall: Message.Tool.Call,
+    toolCall: MessagePart.Tool.Call,
     finishTool: Tool<Output, OutputTransformed>,
 ): ReceivedToolResult {
     val toolDescription = finishTool.descriptor.description
     // Execute Finish tool directly and get a result
     val encodedResult = try {
-        val args = finishTool.decodeArgs(toolCall.contentJson.toKoogJSONObject(), config.serializer)
+        val args = finishTool.decodeArgs(toolCall.argsJson.toKoogJSONObject(), config.serializer)
         val toolResult = finishTool.execute(args = args)
         finishTool.encodeResult(toolResult, config.serializer)
     } catch (e: CancellationException) {
@@ -862,11 +847,10 @@ internal suspend fun <Output, OutputTransformed> AIAgentContext.executeFinishToo
         return ReceivedToolResult(
             id = toolCall.id,
             tool = finishTool.name,
-            toolArgs = toolCall.contentJsonResult
-                .map { it.toKoogJSONObject() }
+            toolArgs = runCatching { toolCall.argsJson.toKoogJSONObject() }
                 .getOrElse { JSONObject(emptyMap()) },
             toolDescription = toolDescription,
-            content = "Failed to execute '${finishTool.name}' with error: ${e.message}'",
+            output = "Failed to execute '${finishTool.name}' with error: ${e.message}'",
             resultKind = ToolResultKind.Failure(e),
             result = null,
         )
@@ -876,8 +860,8 @@ internal suspend fun <Output, OutputTransformed> AIAgentContext.executeFinishToo
     // to see it (otherwise they would fail)
     llm.writeSession {
         appendPrompt {
-            tool {
-                result(toolCall.id, toolCall.tool, toolCall.content)
+            user {
+                toolResult(toolCall.id, toolCall.tool, toolCall.args)
             }
         }
     }
@@ -885,8 +869,8 @@ internal suspend fun <Output, OutputTransformed> AIAgentContext.executeFinishToo
     return ReceivedToolResult(
         id = toolCall.id,
         tool = finishTool.name,
-        toolArgs = toolCall.contentJson.toKoogJSONObject(),
-        content = toolCall.content,
+        toolArgs = toolCall.argsJson.toKoogJSONObject(),
+        output = toolCall.args,
         resultKind = ToolResultKind.Success,
         toolDescription = toolDescription,
         result = encodedResult

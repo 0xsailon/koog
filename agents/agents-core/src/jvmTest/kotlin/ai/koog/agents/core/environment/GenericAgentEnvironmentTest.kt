@@ -130,7 +130,7 @@ class GenericAgentEnvironmentTest {
 
         assertEquals("missing_tool", result.tool)
         assertTrue(result.resultKind is ToolResultKind.Failure)
-        assertTrue(result.content.contains("not found in the tool registry"))
+        assertTrue(result.output.contains("not found in the tool registry"))
     }
 
     @Test
@@ -152,7 +152,7 @@ class GenericAgentEnvironmentTest {
         )
 
         assertTrue(result.resultKind is ToolResultKind.ValidationError)
-        assertEquals("Invalid arguments", result.content)
+        assertEquals("Invalid arguments", result.output)
     }
 
     @Test
@@ -174,7 +174,7 @@ class GenericAgentEnvironmentTest {
         )
 
         assertTrue(result.resultKind is ToolResultKind.Failure)
-        assertTrue(result.content.contains("failed to execute"))
+        assertTrue(result.output.contains("failed to execute"))
     }
 
     @Test
@@ -196,7 +196,7 @@ class GenericAgentEnvironmentTest {
         )
 
         assertEquals(ToolResultKind.Success, result.resultKind)
-        assertEquals("ok:value", result.content)
+        assertEquals("ok:value", result.output)
     }
 
     @Test

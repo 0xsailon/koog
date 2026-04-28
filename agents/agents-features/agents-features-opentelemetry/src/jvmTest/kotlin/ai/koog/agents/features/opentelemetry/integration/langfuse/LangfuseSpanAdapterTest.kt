@@ -19,7 +19,9 @@ import ai.koog.agents.features.opentelemetry.span.startInvokeAgentSpan
 import ai.koog.agents.features.opentelemetry.span.startNodeExecuteSpan
 import ai.koog.agents.utils.HiddenString
 import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.message.FinishReason
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.prompt.params.LLMParams
@@ -101,14 +103,14 @@ class LangfuseSpanAdapterTest {
         inferenceSpan.addEvent(AssistantMessageEvent(provider, Message.Assistant(assistantContent, ResponseMetaInfo.Empty)))
         inferenceSpan.addEvent(ToolMessageEvent(provider, toolCallId = "tool-call-response", content = toolResponseContent))
 
-        val toolCallResponse = Message.Tool.Call(
-            id = "tool-call-id",
-            tool = "getWeather",
-            content = "{\"location\":\"Paris\"}",
+        val toolCallPart = MessagePart.Tool.Call(id = "tool-call-id", tool = "getWeather", args = "{\"location\":\"Paris\"}")
+        val toolCallMessage = Message.Assistant(
+            parts = listOf(toolCallPart),
             metaInfo = ResponseMetaInfo.Empty,
+            finishReason = FinishReason.ToolCall,
         )
-        val choiceEvent = ChoiceEvent(provider, toolCallResponse, index = 0)
-        val expectedToolCallJson = EventBodyFields.ToolCalls(listOf(toolCallResponse)).valueString(true)
+        val choiceEvent = ChoiceEvent(provider, toolCallMessage, index = 0)
+        val expectedToolCallJson = EventBodyFields.ToolCalls(listOf(toolCallPart)).valueString(true)
         inferenceSpan.addEvent(choiceEvent)
 
         adapter.onBeforeSpanStarted(inferenceSpan)
@@ -129,7 +131,7 @@ class LangfuseSpanAdapterTest {
         assertEquals("tool", attributes.requireValue("gen_ai.prompt.3.role"))
         assertEquals(toolResponseContent, assertIs<HiddenString>(attributes.requireValue("gen_ai.prompt.3.content")).value)
 
-        assertEquals("tool", attributes.requireValue("gen_ai.prompt.4.role"))
+        assertEquals("assistant", attributes.requireValue("gen_ai.prompt.4.role"))
         assertEquals(expectedToolCallJson, attributes.requireValue("gen_ai.prompt.4.content"))
     }
 
@@ -147,19 +149,19 @@ class LangfuseSpanAdapterTest {
             Message.Assistant(
                 content = assistantAnswer,
                 metaInfo = ResponseMetaInfo.Empty,
-                finishReason = "stop",
+                finishReason = FinishReason("stop"),
             )
         )
         inferenceSpan.addEvent(assistantEvent)
 
-        val toolCallResponse = Message.Tool.Call(
-            id = "tool-call-id",
-            tool = "getWeather",
-            content = "{\"location\":\"Rome\"}",
+        val toolCallPart2 = MessagePart.Tool.Call(id = "tool-call-id", tool = "getWeather", args = "{\"location\":\"Rome\"}")
+        val toolCallMessage2 = Message.Assistant(
+            parts = listOf(toolCallPart2),
             metaInfo = ResponseMetaInfo.Empty,
+            finishReason = FinishReason.ToolCall,
         )
-        val choiceEvent = ChoiceEvent(provider, toolCallResponse, index = 0)
-        val expectedToolCallJson = EventBodyFields.ToolCalls(listOf(toolCallResponse)).valueString(true)
+        val choiceEvent = ChoiceEvent(provider, toolCallMessage2, index = 0)
+        val expectedToolCallJson = EventBodyFields.ToolCalls(listOf(toolCallPart2)).valueString(true)
         inferenceSpan.addEvent(choiceEvent)
 
         adapter.onBeforeSpanFinished(inferenceSpan)

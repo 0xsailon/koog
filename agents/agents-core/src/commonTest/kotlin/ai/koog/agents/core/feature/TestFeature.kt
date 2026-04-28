@@ -182,7 +182,7 @@ class TestFeature(val events: MutableList<String>) {
                 config.addEvent(
                     event,
                     mapOf(
-                        "responses" to "[${event.responses.joinToString(", ") { "${it.role.name}: ${it.content}" }}]"
+                        "responses" to "[${event.response.joinToString(", ") { "${it.role.name}: ${it.content}" }}]"
                     )
                 )
             }

@@ -91,7 +91,7 @@ public data class LLMCallFailedContext(
  * @property prompt The prompt that was sent to the language model.
  * @property model The language model instance that was used.
  * @property tools The list of tool descriptors that were available for the LLM call.
- * @property responses The response messages received from the language model.
+ * @property response The response message received from the language model.
  * @property moderationResponse The moderation response, if any, received from the language model.
  */
 public data class LLMCallCompletedContext(
@@ -101,7 +101,7 @@ public data class LLMCallCompletedContext(
     override val prompt: Prompt,
     override val model: LLModel,
     override val tools: List<ToolDescriptor>,
-    val responses: List<Message.Response>,
+    val response: Message.Assistant?,
     val moderationResponse: ModerationResult?,
     override val context: AIAgentContext
 ) : LLMCallEventContext {

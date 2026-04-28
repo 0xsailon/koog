@@ -131,7 +131,7 @@ internal class MockLLMClient @JvmOverloads constructor(
         prompt: Prompt,
         model: LLModel,
         tools: List<ToolDescriptor>
-    ): List<Message.Response> = executeResponse
+    ): List<Message.Assistant> = executeResponse
 
     override fun executeStreaming(
         prompt: Prompt,

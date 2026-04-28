@@ -6,12 +6,12 @@ import ai.koog.agents.core.agent.context.agentInput
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.subgraph
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.getToolCall
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.subgraphWithTask
@@ -191,7 +191,7 @@ open class AIAgentTestBase {
             prompt: Prompt,
             model: LLModel,
             tools: List<ToolDescriptor>
-        ): List<Message.Response> {
+        ): Message.Assistant {
             CoroutineScope(currentCoroutineContext()).launch {
                 eventsChannel.send(
                     Event.Message(
@@ -301,15 +301,15 @@ open class AIAgentTestBase {
                 }
 
                 val callLLM by nodeLLMRequest(allowToolCalls = true)
-                val callTool by nodeExecuteTool()
+                val callTool by nodeExecuteTools()
                 val sendToolResult by nodeLLMSendToolResult()
 
                 edge(nodeStart forwardTo definePromptAnthropic transformed {})
                 edge(definePromptAnthropic forwardTo callLLM transformed { agentInput<String>() })
-                edge(callLLM forwardTo callTool onToolCall { true })
+                edge(callLLM forwardTo callTool getToolCall { true })
                 edge(callLLM forwardTo nodeFinish onAssistantMessage { true } transformed {})
                 edge(callTool forwardTo sendToolResult)
-                edge(sendToolResult forwardTo callTool onToolCall { true })
+                edge(sendToolResult forwardTo callTool getToolCall { true })
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true } transformed {})
             }
 
@@ -333,15 +333,15 @@ open class AIAgentTestBase {
                 }
 
                 val callLLM by nodeLLMRequest(allowToolCalls = true)
-                val callTool by nodeExecuteTool()
+                val callTool by nodeExecuteTools()
                 val sendToolResult by nodeLLMSendToolResult()
 
                 edge(nodeStart forwardTo definePromptOpenAI)
                 edge(definePromptOpenAI forwardTo callLLM transformed { agentInput<String>() })
-                edge(callLLM forwardTo callTool onToolCall { true })
+                edge(callLLM forwardTo callTool getToolCall { true })
                 edge(callLLM forwardTo nodeFinish onAssistantMessage { true })
                 edge(callTool forwardTo sendToolResult)
-                edge(sendToolResult forwardTo callTool onToolCall { true })
+                edge(sendToolResult forwardTo callTool getToolCall { true })
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             }
 

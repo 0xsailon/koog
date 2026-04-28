@@ -17,6 +17,7 @@ import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.google.GoogleModels
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.ollama.client.OllamaModels
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
@@ -54,15 +55,15 @@ class FunctionalAIAgentTest {
             systemPrompt = "You are helpful",
             promptExecutor = mockLLMApi,
             strategy = functionalStrategy { inputParam ->
-                var responses = requestLLMMultiple(inputParam)
+                var responses = requestLLM(inputParam)
 
-                while (responses.containsToolCalls()) {
+                while (responses.parts.any { it is MessagePart.Tool.Call }) {
                     val tools = extractToolCalls(responses)
                     val results = executeMultipleTools(tools)
                     responses = sendMultipleToolResults(results)
                 }
 
-                responses.single().asAssistantMessage().content
+                responses.parts.filterIsInstance<MessagePart.Text>().first().text
             },
             llmModel = OllamaModels.Meta.LLAMA_3_2,
             toolRegistry = testToolRegistry
@@ -100,9 +101,9 @@ class FunctionalAIAgentTest {
             strategy = functionalStrategy { inputParam ->
                 val resp = llm.writeSession {
                     appendPrompt { user(inputParam) }
-                    requestLLM()
+                    this.requestLLM()
                 }
-                resp.content
+                resp.parts.filterIsInstance<MessagePart.Text>().first().text
             },
             llmModel = OllamaModels.Meta.LLAMA_3_2,
             toolRegistry = testToolRegistry,
@@ -138,15 +139,15 @@ class FunctionalAIAgentTest {
             OllamaModels.Meta.LLAMA_3_2,
             toolRegistry = testToolRegistry,
             strategy = functionalStrategy { inputParam: String ->
-                var responses = requestLLMMultiple(inputParam)
+                var responses = requestLLM(inputParam)
 
-                while (responses.containsToolCalls()) {
+                while (responses.parts.any { it is MessagePart.Tool.Call }) {
                     val tools = extractToolCalls(responses)
                     val results = executeMultipleTools(tools)
                     responses = sendMultipleToolResults(results)
                 }
 
-                responses.single().asAssistantMessage().content
+                responses.parts.filterIsInstance<MessagePart.Text>().first().text
             }
         ) {
             install(EventHandler) {

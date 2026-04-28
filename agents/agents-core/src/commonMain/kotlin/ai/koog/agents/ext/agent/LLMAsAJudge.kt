@@ -10,6 +10,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.model.StructureFixingParser
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmName
 
@@ -113,17 +114,38 @@ public suspend fun <T> AIAgentGraphContextBase.setupLLMAsAJudge(
             append("<previous_conversation>\n")
             initialPrompt.messages.forEach { message ->
                 when (message) {
-                    is Message.System -> append("<system>\n${message.content}\n</system>\n")
-                    is Message.User -> append("<user>\n${message.content}\n</user>\n")
-                    is Message.Assistant -> append("<assistant>\n${message.content}\n</assistant>\n")
-                    is Message.Reasoning -> append("<thinking>\n${message.content}\n</thinking>\n")
-                    is Message.Tool.Call -> append(
-                        "<tool_call tool=${message.tool}>\n${message.content}\n</tool_call>\n"
-                    )
-
-                    is Message.Tool.Result -> append(
-                        "<tool_result tool=${message.tool}>\n${message.content}\n</tool_result>\n"
-                    )
+                    is Message.System -> {
+                        message.parts.forEach { part ->
+                            append("<system>\n${part.text}\n</system>\n")
+                        }
+                    }
+                    is Message.User -> {
+                        message.parts.forEach { part ->
+                            when (part) {
+                                is MessagePart.Text -> append("<user>\n${part.text}\n</user>\n")
+                                is MessagePart.Tool.Result -> append(
+                                    "<tool_result tool=${part.tool}>\n${part.output}\n</tool_result>\n"
+                                )
+                                else -> {}
+                            }
+                        }
+                    }
+                    is Message.Assistant -> {
+                        message.parts.forEach { part ->
+                            when (part) {
+                                is MessagePart.Text -> append("<assistant>\n${part.text}\n</assistant>\n")
+                                is MessagePart.Tool.Call -> append(
+                                    "<tool_call tool=${part.tool}>\n${part.argsJson}\n</tool_call>\n"
+                                )
+                                is MessagePart.Reasoning -> {
+                                    part.content.forEach {
+                                        append("<thinking>\n${it}\n</thinking>\n")
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
                 }
             }
             append("</previous_conversation>\n")

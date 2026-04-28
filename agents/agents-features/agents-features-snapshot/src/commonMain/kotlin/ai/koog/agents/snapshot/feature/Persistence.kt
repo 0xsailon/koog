@@ -21,8 +21,10 @@ import ai.koog.agents.core.annotation.InternalAgentsApi
 import ai.koog.agents.core.feature.AIAgentGraphFeature
 import ai.koog.agents.core.feature.pipeline.AIAgentGraphPipeline
 import ai.koog.agents.core.tools.annotations.InternalAgentToolsApi
+import ai.koog.agents.snapshot.feature.Persistence.Feature.runFromCheckpoint
 import ai.koog.agents.snapshot.providers.PersistenceStorageProvider
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.JSONElement
 import ai.koog.serialization.TypeToken
 import ai.koog.serialization.kotlinx.toKoogJSONElement
@@ -480,16 +482,13 @@ public class Persistence(
                     messageHistoryDiff(
                         currentMessages = context.llm.prompt.messages,
                         checkpointMessages = checkpoint.messageHistory
-                    )
-                        .filterIsInstance<Message.Tool.Call>()
-                        .reversed()
-                        .forEach { toolCall ->
+                    ).reversed().forEach { message ->
+                        message.parts.filterIsInstance<MessagePart.Tool.Call>().reversed().forEach { toolCall ->
                             rollbackToolRegistry.getRollbackTool(toolCall.tool)?.let { rollbackTool ->
                                 val toolArgs = try {
-                                    toolCall.contentJsonResult
-                                        .getOrNull()
-                                        ?.toKoogJSONObject()
-                                        ?.let { rollbackTool.decodeArgs(it, agentContext.config.serializer) }
+                                    toolCall.argsJson
+                                        .toKoogJSONObject()
+                                        .let { rollbackTool.decodeArgs(it, agentContext.config.serializer) }
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (_: Exception) {
@@ -498,6 +497,7 @@ public class Persistence(
                                 rollbackTool.executeUnsafe(toolArgs)
                             }
                         }
+                    }
                 }
             )
         }

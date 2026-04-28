@@ -28,7 +28,7 @@ import ai.koog.agents.longtermmemory.retrieval.augmentation.SystemPromptAugmente
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.streaming.StreamFrame
-import ai.koog.prompt.streaming.toMessageResponses
+import ai.koog.prompt.streaming.toMessageResponse
 import ai.koog.rag.base.TextDocument
 import ai.koog.rag.base.storage.SearchStorage
 import ai.koog.rag.base.storage.WriteStorage
@@ -400,7 +400,7 @@ public class LongTermMemory(
 
             // Ingest assistant responses after regular LLM call
             pipeline.interceptLLMCallCompleted(this) { ctx ->
-                ingestMessages(ingestion, ctx.responses)
+                ingestMessages(ingestion, ctx.response?.let { listOf(it) } ?: emptyList())
             }
 
             // Ingest original (not yet augmented) prompt messages before streaming LLM call
@@ -429,7 +429,7 @@ public class LongTermMemory(
                     ltmFeature.streamingFramesBuffer.remove(ctx.runId)
                 }
                 if (!frames.isNullOrEmpty()) {
-                    ingestMessages(ingestion, frames.toMessageResponses())
+                    ingestMessages(ingestion, listOf(frames.toMessageResponse()))
                 }
             }
         }

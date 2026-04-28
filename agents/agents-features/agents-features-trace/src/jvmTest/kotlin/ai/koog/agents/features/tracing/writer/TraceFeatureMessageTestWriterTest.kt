@@ -5,7 +5,7 @@ import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.subgraph
 import ai.koog.agents.core.dsl.extension.nodeAppendPrompt
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStreamingAndSendResults
 import ai.koog.agents.core.feature.model.AIAgentError
@@ -125,7 +125,7 @@ class TraceFeatureMessageTestWriterTest {
         val toolName = "there is no tool with this name"
         val rawToolArgs = "{}"
         val strategy = strategy<String, String>("tracing-tool-call-test") {
-            val callTool by nodeExecuteTool("Tool call")
+            val callTool by nodeExecuteTools("Tool call")
             edge(
                 nodeStart forwardTo callTool transformed { _ ->
                     Message.Tool.Call(
@@ -136,7 +136,7 @@ class TraceFeatureMessageTestWriterTest {
                     )
                 }
             )
-            edge(callTool forwardTo nodeFinish transformed { input -> input.content })
+            edge(callTool forwardTo nodeFinish transformed { input -> input.output })
         }
 
         val messageProcessor = TestFeatureMessageWriter()
@@ -164,7 +164,7 @@ class TraceFeatureMessageTestWriterTest {
     @Test
     fun `test existing tool call`() = runBlocking {
         val strategy = strategy<String, String>("tracing-tool-call-test") {
-            val callTool by nodeExecuteTool("Tool call")
+            val callTool by nodeExecuteTools("Tool call")
             edge(
                 nodeStart forwardTo callTool transformed { _ ->
                     Message.Tool.Call(
@@ -175,7 +175,7 @@ class TraceFeatureMessageTestWriterTest {
                     )
                 }
             )
-            edge(callTool forwardTo nodeFinish transformed { input -> input.content })
+            edge(callTool forwardTo nodeFinish transformed { input -> input.output })
         }
 
         val messageProcessor = TestFeatureMessageWriter()
@@ -200,7 +200,7 @@ class TraceFeatureMessageTestWriterTest {
     @Test
     fun `test recursive tool call`() = runBlocking {
         val strategy = strategy<String, String>("recursive-tool-call-test") {
-            val callTool by nodeExecuteTool("Tool call")
+            val callTool by nodeExecuteTools("Tool call")
             edge(
                 nodeStart forwardTo callTool transformed { _ ->
                     Message.Tool.Call(
@@ -211,7 +211,7 @@ class TraceFeatureMessageTestWriterTest {
                     )
                 }
             )
-            edge(callTool forwardTo nodeFinish transformed { input -> input.content })
+            edge(callTool forwardTo nodeFinish transformed { input -> input.output })
         }
 
         val messageProcessor = TestFeatureMessageWriter()
@@ -239,7 +239,7 @@ class TraceFeatureMessageTestWriterTest {
         val dummyTool = DummyTool()
 
         val strategy = strategy<String, String>("llm-tool-call-test") {
-            val callTool by nodeExecuteTool("Tool call")
+            val callTool by nodeExecuteTools("Tool call")
             edge(
                 nodeStart forwardTo callTool transformed { _ ->
                     Message.Tool.Call(
@@ -250,7 +250,7 @@ class TraceFeatureMessageTestWriterTest {
                     )
                 }
             )
-            edge(callTool forwardTo nodeFinish transformed { input -> input.content })
+            edge(callTool forwardTo nodeFinish transformed { input -> input.output })
         }
 
         val messageProcessor = TestFeatureMessageWriter()
@@ -494,7 +494,7 @@ class TraceFeatureMessageTestWriterTest {
                 prompt: Prompt,
                 model: LLModel,
                 tools: List<ToolDescriptor>
-            ): List<Message.Response> = emptyList()
+            ): List<Message.Assistant> = emptyList()
 
             override fun executeStreaming(
                 prompt: Prompt,

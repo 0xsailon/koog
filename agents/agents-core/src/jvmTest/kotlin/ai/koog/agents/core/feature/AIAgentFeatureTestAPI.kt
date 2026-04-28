@@ -313,7 +313,7 @@ internal object AIAgentFeatureTestAPI {
             params = LLMParams()
         ),
         model = mockLLModel.toModelInfo(),
-        responses = listOf(
+        response = listOf(
             Message.Assistant(
                 content = "test-assistant-message",
                 metaInfo = ResponseMetaInfo(timestamp = testClock.now())

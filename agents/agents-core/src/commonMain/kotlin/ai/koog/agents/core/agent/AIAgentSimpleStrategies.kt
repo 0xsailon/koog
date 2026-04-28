@@ -4,16 +4,6 @@ package ai.koog.agents.core.agent
 
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.nodeExecuteMultipleTools
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
-import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.nodeLLMRequestMultiple
-import ai.koog.agents.core.dsl.extension.nodeLLMSendMultipleToolResults
-import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
-import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onMultipleAssistantMessages
-import ai.koog.agents.core.dsl.extension.onMultipleToolCalls
-import ai.koog.agents.core.dsl.extension.onToolCall
 import kotlin.jvm.JvmName
 import kotlin.jvm.JvmOverloads
 
@@ -41,41 +31,41 @@ public fun singleRunStrategy(runMode: ToolCalls = ToolCalls.SEQUENTIAL): AIAgent
         ToolCalls.SINGLE_RUN_SEQUENTIAL -> singleRunModeStrategy()
     }
 
-private fun singleRunWithParallelAbility(parallelTools: Boolean) = strategy("single_run_sequential") {
-    val nodeCallLLM by nodeLLMRequestMultiple()
-    val nodeExecuteTool by nodeExecuteMultipleTools(parallelTools = parallelTools)
-    val nodeSendToolResult by nodeLLMSendMultipleToolResults()
-
-    edge(nodeStart forwardTo nodeCallLLM)
-    edge(nodeCallLLM forwardTo nodeExecuteTool onMultipleToolCalls { true })
-    edge(
-        nodeCallLLM forwardTo nodeFinish
-            onMultipleAssistantMessages { true }
-            transformed { it.joinToString("\n") { message -> message.content } }
-    )
-
-    edge(nodeExecuteTool forwardTo nodeSendToolResult)
-
-    edge(nodeSendToolResult forwardTo nodeExecuteTool onMultipleToolCalls { true })
-
-    edge(
-        nodeSendToolResult forwardTo nodeFinish
-            onMultipleAssistantMessages { true }
-            transformed { it.joinToString("\n") { message -> message.content } }
-    )
+private fun singleRunWithParallelAbility(parallelTools: Boolean) = strategy<String, String>("single_run_sequential") {
+//    val nodeCallLLM by nodeLLMRequest()
+//    val nodeExecuteTool by nodeExecuteMultipleTools(parallelTools = parallelTools)
+//    val nodeSendToolResult by nodeLLMSendToolResults()
+//
+//    edge(nodeStart forwardTo nodeCallLLM)
+//    edge(nodeCallLLM forwardTo nodeExecuteTool onToolCalls { true })
+//    edge(
+//        nodeCallLLM forwardTo nodeFinish
+//            onAssistantMessages { true }
+//            transformed { it.joinToString("\n") { message -> message.content } }
+//    )
+//
+//    edge(nodeExecuteTool forwardTo nodeSendToolResult)
+//
+//    edge(nodeSendToolResult forwardTo nodeExecuteTool onMultipleToolCalls { true })
+//
+//    edge(
+//        nodeSendToolResult forwardTo nodeFinish
+//            onMultipleAssistantMessages { true }
+//            transformed { it.joinToString("\n") { message -> message.content } }
+//    )
 }
 
-private fun singleRunModeStrategy() = strategy("single_run") {
-    val nodeCallLLM by nodeLLMRequest()
-    val nodeExecuteTool by nodeExecuteTool()
-    val nodeSendToolResult by nodeLLMSendToolResult()
-
-    edge(nodeStart forwardTo nodeCallLLM)
-    edge(nodeCallLLM forwardTo nodeExecuteTool onToolCall { true })
-    edge(nodeCallLLM forwardTo nodeFinish onAssistantMessage { true })
-    edge(nodeExecuteTool forwardTo nodeSendToolResult)
-    edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-    edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
+private fun singleRunModeStrategy() = strategy<String, String>("single_run") {
+//    val nodeCallLLM by nodeLLMRequest()
+//    val nodeExecuteTool by nodeExecuteTool()
+//    val nodeSendToolResult by nodeLLMSendToolResult()
+//
+//    edge(nodeStart forwardTo nodeCallLLM)
+//    edge(nodeCallLLM forwardTo nodeExecuteTool onToolCall { true })
+//    edge(nodeCallLLM forwardTo nodeFinish onAssistantMessage { true })
+//    edge(nodeExecuteTool forwardTo nodeSendToolResult)
+//    edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
+//    edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
 }
 
 /**

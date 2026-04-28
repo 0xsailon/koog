@@ -2,12 +2,10 @@ package ai.koog.agents.memory.feature.history
 
 import ai.koog.agents.core.agent.session.AIAgentLLMWriteSession
 import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
-import ai.koog.agents.memory.feature.retrieveFactsFromHistory
 import ai.koog.agents.memory.model.Concept
-import ai.koog.agents.memory.model.MultipleFacts
-import ai.koog.agents.memory.model.SingleFact
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 
 /**
  * A history compression strategy for retrieving and incorporating factual knowledge about specific concepts from past
@@ -40,19 +38,20 @@ public class RetrieveFactsFromHistory(public val concepts: List<Concept>) : Hist
         llmSession: AIAgentLLMWriteSession,
         memoryMessages: List<Message>
     ) {
-        val iterationsCount = llmSession.prompt.messages.count { it is Message.Tool.Result }
-
-        val factsString = concepts.associateWith { concept -> llmSession.retrieveFactsFromHistory(concept) }
-            .map { (concept, fact) ->
-                buildString {
-                    appendLine("## KNOWN FACTS ABOUT `${concept.keyword}` (${concept.description})")
-                    when (fact) {
-                        is MultipleFacts -> fact.values.forEach { appendLine("- $it") }
-                        is SingleFact -> appendLine("- ${fact.value}")
-                    }
-                    appendLine()
-                }
-            }.joinToString("\n")
+        val iterationsCount = llmSession.prompt.messages.count { it is MessagePart.Tool.Result }
+//
+//        val factsString = concepts.associateWith { concept -> llmSession.retrieveFactsFromHistory(concept) }
+//            .map { (concept, fact) ->
+//                buildString {
+//                    appendLine("## KNOWN FACTS ABOUT `${concept.keyword}` (${concept.description})")
+//                    when (fact) {
+//                        is MultipleFacts -> fact.values.forEach { appendLine("- $it") }
+//                        is SingleFact -> appendLine("- ${fact.value}")
+//                    }
+//                    appendLine()
+//                }
+//            }.joinToString("\n")
+        val factsString = "dummy"
 
         val assistantMessage =
             """[CONTEXT RESTORATION INITIATED]
@@ -78,14 +77,14 @@ public class RetrieveFactsFromHistory(public val concepts: List<Concept>) : Hist
             """.trimIndent()
 
         val oldMessages = llmSession.prompt.messages
-        val lastResult = oldMessages.filterIsInstance<Message.Tool.Result>().lastOrNull()
-        val lastToolCallMessages =
-            lastResult?.let { result ->
-                oldMessages.filterIsInstance<Message.Tool.Call>().find {
-                    it.id == result.id
-                }?.let { listOf(it, result) }
-            }
-                ?: emptyList()
+//        val lastResult = oldMessages.filterIsInstance<Message.Tool.Result>().lastOrNull()
+//        val lastToolCallMessages =
+//            lastResult?.let { result ->
+//                oldMessages.filterIsInstance<Message.Tool.Call>().find {
+//                    it.id == result.id
+//                }?.let { listOf(it, result) }
+//            }
+//                ?: emptyList()
 
         val newMessages = Prompt.build(llmSession.prompt.id) {
             assistant(assistantMessage)

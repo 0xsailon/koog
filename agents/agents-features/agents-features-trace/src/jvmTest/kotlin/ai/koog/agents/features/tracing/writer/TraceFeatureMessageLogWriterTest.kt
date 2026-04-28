@@ -2,11 +2,11 @@ package ai.koog.agents.features.tracing.writer
 
 import ai.koog.agents.core.annotation.InternalAgentsApi
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.getToolCall
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.feature.message.FeatureEvent
 import ai.koog.agents.core.feature.message.FeatureMessage
@@ -102,15 +102,15 @@ class TraceFeatureMessageLogWriterTest {
 
             val strategy = strategy(strategyName) {
                 val nodeSendInput by nodeLLMRequest("test-llm-call")
-                val nodeExecuteTool by nodeExecuteTool("test-tool-call")
+                val nodeExecuteTool by nodeExecuteTools("test-tool-call")
                 val nodeSendToolResult by nodeLLMSendToolResult("test-node-llm-send-tool-result")
 
                 edge(nodeStart forwardTo nodeSendInput)
-                edge(nodeSendInput forwardTo nodeExecuteTool onToolCall { true })
+                edge(nodeSendInput forwardTo nodeExecuteTool getToolCall { true })
                 edge(nodeSendInput forwardTo nodeFinish onAssistantMessage { true })
                 edge(nodeExecuteTool forwardTo nodeSendToolResult)
                 edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-                edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
+                edge(nodeSendToolResult forwardTo nodeExecuteTool getToolCall { true })
             }
 
             val mockExecutor = getMockExecutor(serializer, clock = testClock) {
@@ -235,7 +235,7 @@ class TraceFeatureMessageLogWriterTest {
                                 toolDescription = dummyTool.descriptor.description,
                                 content = dummyTool.result,
                                 result = dummyTool.encodeResult(dummyTool.result, serializer)
-                            ).toMessage(clock = testClock)
+                            ).toMessagePart(clock = testClock)
                         )
                     ).traceString
                 }, model: ${testModel.toModelInfo().modelIdentifierName}, tools: [$dummyToolName])",
@@ -251,7 +251,7 @@ class TraceFeatureMessageLogWriterTest {
                                 toolDescription = dummyTool.descriptor.description,
                                 content = dummyTool.result,
                                 result = dummyTool.encodeResult(dummyTool.result, serializer)
-                            ).toMessage(clock = testClock)
+                            ).toMessagePart(clock = testClock)
                         )
                     ).traceString
                 }, model: ${testModel.toModelInfo().modelIdentifierName}, responses: [{${expectedResponse.traceString}}])",
@@ -442,15 +442,15 @@ class TraceFeatureMessageLogWriterTest {
 
             val strategy = strategy(strategyName) {
                 val nodeSendInput by nodeLLMRequest("test-llm-call")
-                val nodeExecuteTool by nodeExecuteTool("test-tool-call")
+                val nodeExecuteTool by nodeExecuteTools("test-tool-call")
                 val nodeSendToolResult by nodeLLMSendToolResult("test-node-llm-send-tool-result")
 
                 edge(nodeStart forwardTo nodeSendInput)
-                edge(nodeSendInput forwardTo nodeExecuteTool onToolCall { true })
+                edge(nodeSendInput forwardTo nodeExecuteTool getToolCall { true })
                 edge(nodeSendInput forwardTo nodeFinish onAssistantMessage { true })
                 edge(nodeExecuteTool forwardTo nodeSendToolResult)
                 edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-                edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
+                edge(nodeSendToolResult forwardTo nodeExecuteTool getToolCall { true })
             }
 
             val mockExecutor = getMockExecutor(serializer, clock = testClock) {
@@ -521,7 +521,7 @@ class TraceFeatureMessageLogWriterTest {
                                 toolDescription = dummyTool.descriptor.description,
                                 content = dummyTool.result,
                                 result = dummyTool.encodeResult(dummyTool.result, serializer)
-                            ).toMessage(clock = testClock)
+                            ).toMessagePart(clock = testClock)
                         )
                     ).traceString
                 }, model: ${testModel.toModelInfo().modelIdentifierName}, tools: [$dummyToolName])",
@@ -537,7 +537,7 @@ class TraceFeatureMessageLogWriterTest {
                                 toolDescription = dummyTool.descriptor.description,
                                 content = dummyTool.result,
                                 result = dummyTool.encodeResult(dummyTool.result, serializer)
-                            ).toMessage(clock = testClock)
+                            ).toMessagePart(clock = testClock)
                         )
                     ).traceString
                 }, model: ${testModel.toModelInfo().modelIdentifierName}, responses: [{${expectedResponse.traceString}}])",

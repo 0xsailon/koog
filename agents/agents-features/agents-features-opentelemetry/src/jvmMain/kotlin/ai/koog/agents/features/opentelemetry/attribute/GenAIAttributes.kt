@@ -4,14 +4,16 @@ import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.utils.HiddenString
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
-import ai.koog.prompt.message.ContentPart
+import ai.koog.prompt.message.AttachmentSource
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.putJsonArray
 
@@ -77,7 +79,9 @@ internal object GenAIAttributes {
             CREATE_AGENT("create_agent"),
             EMBEDDINGS("embeddings"),
             EXECUTE_TOOL("execute_tool"),
-            GENERATE_CONTENT("generate_content"),
+            GENERATE_CONTENT(
+                "generate_content"
+            ),
             INVOKE_AGENT("invoke_agent"),
             TEXT_COMPLETION("text_completion"),
         }
@@ -159,7 +163,7 @@ internal object GenAIAttributes {
                             put("role", JsonPrimitive(message.role.name))
                             putJsonArray("parts") {
                                 message.parts.forEach { part ->
-                                    addContentPart(part, message)
+                                    addMessagePart(part)
                                 }
                             }
                         }
@@ -184,18 +188,50 @@ internal object GenAIAttributes {
         data class Messages(private val messages: List<Message>) : Output {
             override val key: String = super.key.concatKey("messages")
             override val value: HiddenString = HiddenString(
-                JsonArray(
-                    messages.map { message ->
-                        buildJsonObject {
-                            put("role", JsonPrimitive(message.role.name))
-                            putJsonArray("parts") {
-                                message.parts.forEach { part ->
-                                    addContentPart(part, message)
-                                }
+                buildJsonArray {
+                    messages.forEach { message ->
+                        when (message) {
+                            is Message.System,
+                            is Message.Assistant -> {
+                                add(
+                                    buildJsonObject {
+                                        put("role", JsonPrimitive(message.role.name))
+                                        putJsonArray("parts") {
+                                            message.parts.forEach { part ->
+                                                addMessagePart(part)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+
+                            is Message.User -> {
+                                // Tool result must be added with tool role before user messages with text
+                                add(
+                                    buildJsonObject {
+                                        put("role", JsonPrimitive("tool"))
+                                        putJsonArray("parts") {
+                                            message.parts.filterIsInstance<MessagePart.Tool.Result>().forEach { part ->
+                                                addMessagePart(part)
+                                            }
+                                        }
+                                    }
+                                )
+
+                                add(
+                                    buildJsonObject {
+                                        put("role", JsonPrimitive(message.role.name))
+                                        putJsonArray("parts") {
+                                            message.parts.filter { it !is MessagePart.Tool.Result }.forEach { part ->
+                                                addMessagePart(part)
+                                            }
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
-                ).toString()
+                }.toString()
             )
         }
 
@@ -445,73 +481,129 @@ internal object GenAIAttributes {
 
     //region Private Methods
 
-    private fun JsonArrayBuilder.addContentPart(part: ContentPart, message: Message) {
-        when (part) {
-            is ContentPart.Text -> {
+    private fun buildMessages(messages: List<Message>): String {
+        return buildJsonArray {
+            messages.forEach { message ->
                 when (message) {
-                    is Message.Tool.Call -> {
+                    is Message.System,
+                    is Message.Assistant -> {
+                        add(
+                            buildJsonObject {
+                                put("role", JsonPrimitive(message.role.name))
+                                putJsonArray("parts") {
+                                    message.parts.forEach { part ->
+                                        addMessagePart(part)
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    is Message.User -> {
+                        // Tool result must be added with tool role before user messages with text
+                        add(
+                            buildJsonObject {
+                                put("role", JsonPrimitive("tool"))
+                                putJsonArray("parts") {
+                                    message.parts.filterIsInstance<MessagePart.Tool.Result>().forEach { part ->
+                                        addMessagePart(part)
+                                    }
+                                }
+                            }
+                        )
+
+                        add(
+                            buildJsonObject {
+                                put("role", JsonPrimitive(message.role.name))
+                                putJsonArray("parts") {
+                                    message.parts.filter { it !is MessagePart.Tool.Result }.forEach { part ->
+                                        addMessagePart(part)
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }.toString()
+    }
+
+    private fun JsonArrayBuilder.addMessagePart(part: MessagePart) {
+        when (part) {
+            is MessagePart.Text -> {
+                addJsonObject {
+                    put("type", JsonPrimitive("text"))
+                    put("content", JsonPrimitive(part.text))
+                }
+            }
+
+            is MessagePart.Reasoning -> {
+                part.content.forEach {
+                    addJsonObject {
+                        put("type", JsonPrimitive("reasoning"))
+                        put("content", JsonPrimitive(it))
+                    }
+                }
+            }
+
+            is MessagePart.Tool.Call -> {
+                addJsonObject {
+                    put("type", JsonPrimitive("tool_call"))
+                    part.id?.let { id -> put("id", JsonPrimitive(id)) }
+                    put("name", JsonPrimitive(part.tool))
+                    put("arguments", part.argsJson)
+                }
+            }
+
+            is MessagePart.Tool.Result -> {
+                addJsonObject {
+                    put("type", JsonPrimitive("tool_call_response"))
+                    part.id?.let { id -> put("id", JsonPrimitive(id)) }
+                    put("result", JsonPrimitive(part.output))
+                }
+            }
+
+            is MessagePart.Attachment -> {
+                when (val source = part.source) {
+                    is AttachmentSource.Image -> {
                         addJsonObject {
-                            put("type", JsonPrimitive("tool_call"))
-                            message.id?.let { id -> put("id", JsonPrimitive(id)) }
-                            put("name", JsonPrimitive(message.tool))
-                            put("arguments", message.contentJson)
+                            put("type", JsonPrimitive("image"))
+                            put("format", JsonPrimitive(source.format))
+                            put("mimeType", JsonPrimitive(source.mimeType))
+                            source.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
                         }
                     }
 
-                    is Message.Tool.Result -> {
+                    is AttachmentSource.Video -> {
                         addJsonObject {
-                            put("type", JsonPrimitive("tool_call_response"))
-                            message.id?.let { id -> put("id", JsonPrimitive(id)) }
-                            put("result", JsonPrimitive(part.text))
+                            put("type", JsonPrimitive("video"))
+                            put("format", JsonPrimitive(source.format))
+                            put("mimeType", JsonPrimitive(source.mimeType))
+                            source.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
                         }
                     }
 
-                    else -> {
+                    is AttachmentSource.Audio -> {
                         addJsonObject {
-                            put("type", JsonPrimitive("text"))
-                            put("content", JsonPrimitive(part.text))
+                            put("type", JsonPrimitive("audio"))
+                            put("format", JsonPrimitive(source.format))
+                            put("mimeType", JsonPrimitive(source.mimeType))
+                            source.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
                         }
                     }
-                }
-            }
 
-            is ContentPart.Image -> {
-                addJsonObject {
-                    put("type", JsonPrimitive("image"))
-                    put("format", JsonPrimitive(part.format))
-                    put("mimeType", JsonPrimitive(part.mimeType))
-                    part.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
-                }
-            }
-
-            is ContentPart.Video -> {
-                addJsonObject {
-                    put("type", JsonPrimitive("video"))
-                    put("format", JsonPrimitive(part.format))
-                    put("mimeType", JsonPrimitive(part.mimeType))
-                    part.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
-                }
-            }
-
-            is ContentPart.Audio -> {
-                addJsonObject {
-                    put("type", JsonPrimitive("audio"))
-                    put("format", JsonPrimitive(part.format))
-                    put("mimeType", JsonPrimitive(part.mimeType))
-                    part.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
-                }
-            }
-
-            is ContentPart.File -> {
-                addJsonObject {
-                    put("type", JsonPrimitive("file"))
-                    put("format", JsonPrimitive(part.format))
-                    put("mimeType", JsonPrimitive(part.mimeType))
-                    part.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
+                    is AttachmentSource.File -> {
+                        addJsonObject {
+                            put("type", JsonPrimitive("file"))
+                            put("format", JsonPrimitive(source.format))
+                            put("mimeType", JsonPrimitive(source.mimeType))
+                            source.fileName?.let { name -> put("fileName", JsonPrimitive(name)) }
+                        }
+                    }
                 }
             }
         }
     }
-
-    //endregion Private Methods
 }
+
+//endregion Private Methods

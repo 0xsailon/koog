@@ -102,7 +102,7 @@ public class ContextApiIntegrationTest extends KoogJavaTestBase {
                         return null;
                     });
 
-                    Message.Response response2 = session.requestLLM();
+                    Message.Assistant response2 = session.requestLLM();
 
                     if (response2 instanceof Message.Assistant) {
                         return response2.getContent();
@@ -129,7 +129,7 @@ public class ContextApiIntegrationTest extends KoogJavaTestBase {
             .llmModel(model)
             .systemPrompt("You are a helpful assistant.")
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response response = context.requestLLM("What is 5+5?", true);
+                Message.Assistant response = context.requestLLM("What is 5+5?", true);
 
                 return context.llm().readSession(session -> {
                     List<Message> messages = session.getPrompt().getMessages();
@@ -275,7 +275,7 @@ public class ContextApiIntegrationTest extends KoogJavaTestBase {
             .systemPrompt("You are a calculator. You MUST use add and multiply tools. DO NOT answer without calling tools.")
             .toolRegistry(ToolRegistry.builder().tools(calculator).build())
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response response = context.requestLLM(
+                Message.Assistant response = context.requestLLM(
                     "Calculate 5+3 and 4*6. You can use multiple tools in parallel.",
                     true
                 );
@@ -315,7 +315,7 @@ public class ContextApiIntegrationTest extends KoogJavaTestBase {
             .systemPrompt("You coordinate tool execution.")
             .toolRegistry(ToolRegistry.builder().tools(calculator).build())
             .functionalStrategy((AIAgentFunctionalContext context, String input) -> {
-                Message.Response response = context.requestLLM(
+                Message.Assistant response = context.requestLLM(
                     "Use the add tool to calculate 10 + 5",
                     true
                 );

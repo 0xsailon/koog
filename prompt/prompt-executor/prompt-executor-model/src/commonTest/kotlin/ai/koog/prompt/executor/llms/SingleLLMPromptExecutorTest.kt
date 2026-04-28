@@ -40,7 +40,7 @@ class SingleLLMPromptExecutorTest {
         val responses = listOf(
             Message.Assistant("Hello", ResponseMetaInfo.create(mockClock))
         )
-        val client = CapturingLLMClient(executeResponses = responses)
+        val client = CapturingLLMClient(executeResponse = responses)
         val executor = SingleLLMPromptExecutor(client)
 
         val prompt = Prompt.build("p1") {

@@ -3,9 +3,8 @@ package ai.koog.agents.core.feature
 import ai.koog.agents.core.agent.GraphAIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStorageKey
-import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.feature.config.FeatureConfig
 import ai.koog.agents.core.feature.handler.tool.ToolCallFailedContext
@@ -78,7 +77,7 @@ class ToolCallFailureEventsTest {
         var toolValidationFailed: ToolValidationFailedContext? = null
 
         val strategy = strategy<Message.Tool.Call, ReceivedToolResult>("tool_failure_strategy") {
-            val executeTool by nodeExecuteTool()
+            val executeTool by nodeExecuteTools()
             edge(nodeStart forwardTo executeTool)
             edge(executeTool forwardTo nodeFinish)
         }
@@ -115,7 +114,7 @@ class ToolCallFailureEventsTest {
         var toolCallFailed: ToolCallFailedContext? = null
 
         val strategy = strategy<Message.Tool.Call, ReceivedToolResult>("tool_failure_strategy") {
-            val executeTool by nodeExecuteTool()
+            val executeTool by nodeExecuteTools()
             edge(nodeStart forwardTo executeTool)
             edge(executeTool forwardTo nodeFinish)
         }
@@ -151,7 +150,7 @@ class ToolCallFailureEventsTest {
         var toolCallFailed: ToolCallFailedContext? = null
 
         val strategy = strategy<Message.Tool.Call, ReceivedToolResult>("tool_failure_strategy") {
-            val executeTool by nodeExecuteTool()
+            val executeTool by nodeExecuteTools()
             edge(nodeStart forwardTo executeTool)
             edge(executeTool forwardTo nodeFinish)
         }

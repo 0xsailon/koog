@@ -3,7 +3,9 @@ package ai.koog.agents.features.opentelemetry.event
 import ai.koog.agents.features.opentelemetry.attribute.CommonAttributes
 import ai.koog.agents.features.opentelemetry.attribute.GenAIAttributes
 import ai.koog.agents.features.opentelemetry.mock.MockLLMProvider
+import ai.koog.prompt.message.FinishReason
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.utils.time.KoogClock
 import kotlinx.serialization.json.buildJsonObject
@@ -17,7 +19,7 @@ class ChoiceEventTest {
     //region Attributes
 
     @Test
-    fun `test choice attributes`() {
+    fun testChoiceAttributes() {
         val expectedContent = "Test message"
         val expectedMessage = createTestAssistantMessage(expectedContent)
         val llmProvider = MockLLMProvider()
@@ -41,7 +43,7 @@ class ChoiceEventTest {
     //region Body Fields
 
     @Test
-    fun `test assistant message with finish reason`() {
+    fun testAssistantMessageWithFinishReason() {
         val expectedContent = "Test message"
         val expectedMessage = createTestAssistantMessage(expectedContent, "stop")
 
@@ -54,7 +56,7 @@ class ChoiceEventTest {
         val expectedBodyFields = listOf(
             EventBodyFields.Index(0),
             EventBodyFields.FinishReason("stop"),
-            EventBodyFields.Message(expectedMessage.role, expectedMessage.content)
+            EventBodyFields.Message(expectedMessage.role, expectedContent)
         )
 
         assertEquals(expectedBodyFields.size, choiceEvent.bodyFields.size)
@@ -62,9 +64,9 @@ class ChoiceEventTest {
     }
 
     @Test
-    fun `test tool call message`() {
-        val expectedContent = "Test message"
-        val expectedMessage = createTestToolCallMessage("test-id", "test-tool", expectedContent)
+    fun testToolCallMessage() {
+        val toolCallPart = MessagePart.Tool.Call(id = "test-id", tool = "test-tool", args = "Test message")
+        val expectedMessage = createTestAssistantMessageWithToolCall(toolCallPart)
 
         val choiceEvent = ChoiceEvent(
             provider = MockLLMProvider(),
@@ -74,8 +76,8 @@ class ChoiceEventTest {
 
         val expectedBodyFields = listOf(
             EventBodyFields.Index(0),
-            EventBodyFields.Role(role = Message.Role.Tool),
-            EventBodyFields.ToolCalls(tools = listOf(expectedMessage)),
+            EventBodyFields.Role(role = Message.Role.Assistant),
+            EventBodyFields.ToolCalls(tools = listOf(toolCallPart)),
             EventBodyFields.FinishReason(reason = GenAIAttributes.Response.FinishReasonType.ToolCalls.id)
         )
 
@@ -84,7 +86,7 @@ class ChoiceEventTest {
     }
 
     @Test
-    fun `test assistant message`() {
+    fun testAssistantMessage() {
         val expectedContent = "Test message"
         val expectedMessage = createTestAssistantMessage(expectedContent)
 
@@ -98,7 +100,7 @@ class ChoiceEventTest {
             EventBodyFields.Index(0),
             EventBodyFields.Message(
                 role = expectedMessage.role,
-                content = expectedMessage.content
+                content = expectedContent
             )
         )
 
@@ -111,7 +113,7 @@ class ChoiceEventTest {
     //region Arguments Tests
 
     @Test
-    fun `test assistant message with arguments`() {
+    fun testAssistantMessageWithArguments() {
         val expectedContent = "Test message"
         val expectedMessage = createTestAssistantMessage(expectedContent)
         val args = buildJsonObject {
@@ -128,7 +130,7 @@ class ChoiceEventTest {
 
         val expectedBodyFields = listOf(
             EventBodyFields.Index(0),
-            EventBodyFields.Message(expectedMessage.role, expectedMessage.content),
+            EventBodyFields.Message(expectedMessage.role, expectedContent),
             EventBodyFields.Arguments(args)
         )
 
@@ -137,9 +139,9 @@ class ChoiceEventTest {
     }
 
     @Test
-    fun `test tool call message ignores arguments`() {
-        val expectedContent = "Test message"
-        val expectedMessage = createTestToolCallMessage("test-id", "test-tool", expectedContent)
+    fun testToolCallMessageIgnoresArguments() {
+        val toolCallPart = MessagePart.Tool.Call(id = "test-id", tool = "test-tool", args = "Test message")
+        val expectedMessage = createTestAssistantMessageWithToolCall(toolCallPart)
         val args = buildJsonObject { put("ignored", true) }
 
         val choiceEvent = ChoiceEvent(
@@ -151,8 +153,8 @@ class ChoiceEventTest {
 
         val expectedBodyFields = listOf(
             EventBodyFields.Index(0),
-            EventBodyFields.Role(role = Message.Role.Tool),
-            EventBodyFields.ToolCalls(tools = listOf(expectedMessage)),
+            EventBodyFields.Role(role = Message.Role.Assistant),
+            EventBodyFields.ToolCalls(tools = listOf(toolCallPart)),
             EventBodyFields.FinishReason(reason = GenAIAttributes.Response.FinishReasonType.ToolCalls.id)
         )
 
@@ -168,15 +170,14 @@ class ChoiceEventTest {
         Message.Assistant(
             content = content,
             metaInfo = ResponseMetaInfo(KoogClock.System.now()),
-            finishReason = finishReason
+            finishReason = finishReason?.let { FinishReason(it) }
         )
 
-    private fun createTestToolCallMessage(id: String, tool: String, content: String): Message.Tool.Call =
-        Message.Tool.Call(
-            id = id,
-            tool = tool,
-            content = content,
-            metaInfo = ResponseMetaInfo(KoogClock.System.now())
+    private fun createTestAssistantMessageWithToolCall(toolCallPart: MessagePart.Tool.Call): Message.Assistant =
+        Message.Assistant(
+            parts = listOf(toolCallPart),
+            metaInfo = ResponseMetaInfo(KoogClock.System.now()),
+            finishReason = FinishReason.ToolCall
         )
 
     //endregion Private Methods

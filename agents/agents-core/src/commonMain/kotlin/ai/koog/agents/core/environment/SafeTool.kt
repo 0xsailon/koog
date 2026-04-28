@@ -1,8 +1,7 @@
 package ai.koog.agents.core.environment
 
 import ai.koog.agents.core.tools.Tool
-import ai.koog.prompt.message.Message
-import ai.koog.prompt.message.ResponseMetaInfo
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.JSONSerializer
 import ai.koog.utils.time.KoogClock
 
@@ -112,11 +111,10 @@ public data class SafeTool<TArgs, TResult>(
         serializer: JSONSerializer,
     ): Result<TResult> {
         return environment.executeTool(
-            Message.Tool.Call(
+            MessagePart.Tool.Call(
                 id = null,
                 tool = tool.name,
-                content = tool.encodeArgsToString(args, serializer),
-                metaInfo = ResponseMetaInfo.create(clock)
+                args = tool.encodeArgsToString(args, serializer),
             )
         ).toSafeResult(tool, serializer)
     }
@@ -147,12 +145,12 @@ public fun <TResult> ReceivedToolResult.toSafeResult(
     tool: Tool<*, TResult>,
     serializer: JSONSerializer,
 ): SafeTool.Result<TResult> {
-    val encodedResult = result ?: return SafeTool.Result.Failure(message = content)
+    val encodedResult = result ?: return SafeTool.Result.Failure(message = output)
     val decodedResult = try {
         tool.decodeResult(encodedResult, serializer)
     } catch (e: Exception) {
         return SafeTool.Result.Failure("Tool with name '${tool.name}' failed to deserialize result with error: ${e.message}")
     }
 
-    return SafeTool.Result.Success(result = decodedResult, content = content)
+    return SafeTool.Result.Success(result = decodedResult, content = output)
 }

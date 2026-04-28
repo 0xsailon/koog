@@ -18,7 +18,7 @@ class MockLLMExecutor : PromptExecutor() {
 
     private val clock: KoogClock = KoogClock { Instant.parse("2023-01-01T00:00:00Z") }
 
-    override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): List<Message.Response> {
+    override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): List<Message.Assistant> {
         return listOf(handlePrompt(prompt))
     }
 
@@ -29,7 +29,7 @@ class MockLLMExecutor : PromptExecutor() {
     ): Flow<StreamFrame> =
         flow { handlePrompt(prompt).toStreamFrames().forEach { emit(it) } }
 
-    private fun handlePrompt(prompt: Prompt): Message.Response {
+    private fun handlePrompt(prompt: Prompt): Message.Assistant {
         val lastMessage = prompt.messages.last()
         if (lastMessage.content.contains("tool")) {
             return Message.Tool.Call(

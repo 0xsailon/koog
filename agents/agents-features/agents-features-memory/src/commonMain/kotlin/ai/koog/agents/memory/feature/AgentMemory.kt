@@ -31,7 +31,6 @@ import ai.koog.agents.memory.providers.AgentMemoryProvider
 import ai.koog.agents.memory.providers.NoMemory
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.llm.LLModel
-import ai.koog.prompt.message.Message
 import ai.koog.prompt.structure.StructuredRequest
 import ai.koog.prompt.structure.StructuredRequestConfig
 import ai.koog.prompt.structure.json.JsonStructure
@@ -489,23 +488,23 @@ public suspend fun AIAgentLLMWriteSession.retrieveFactsFromHistory(
         // Combine all history into one message with XML tags
         // to prevent LLM from continuing answering in a tool_call -> tool_result pattern
         val combinedMessage = buildString {
-            append("<${MemoryPrompts.historyWrapperTag}>\n")
-            oldPrompt.messages.forEach { message ->
-                when (message) {
-                    is Message.System -> append("<system>\n${message.content}\n</system>\n")
-                    is Message.User -> append("<user>\n${message.content}\n</user>\n")
-                    is Message.Assistant -> append("<assistant>\n${message.content}\n</assistant>\n")
-                    is Message.Reasoning -> append("<thinking>\n${message.content}\n</thinking>\n")
-                    is Message.Tool.Call -> append(
-                        "<tool_call tool=${message.tool}>\n${message.content}\n</tool_call>\n"
-                    )
-
-                    is Message.Tool.Result -> append(
-                        "<tool_result tool=${message.tool}>\n${message.content}\n</tool_result>\n"
-                    )
-                }
-            }
-            append("</${MemoryPrompts.historyWrapperTag}>\n")
+//            append("<${MemoryPrompts.historyWrapperTag}>\n")
+//            oldPrompt.messages.forEach { message ->
+//                when (message) {
+//                    is Message.System -> append("<system>\n${message.content}\n</system>\n")
+//                    is Message.User -> append("<user>\n${message.content}\n</user>\n")
+//                    is Message.Assistant -> append("<assistant>\n${message.content}\n</assistant>\n")
+//                    is Message.Reasoning -> append("<thinking>\n${message.content}\n</thinking>\n")
+//                    is Message.Tool.Call -> append(
+//                        "<tool_call tool=${message.tool}>\n${message.content}\n</tool_call>\n"
+//                    )
+//
+//                    is Message.Tool.Result -> append(
+//                        "<tool_result tool=${message.tool}>\n${message.content}\n</tool_result>\n"
+//                    )
+//                }
+//            }
+//            append("</${MemoryPrompts.historyWrapperTag}>\n")
         }
 
         // Put Compression prompt as a System instruction

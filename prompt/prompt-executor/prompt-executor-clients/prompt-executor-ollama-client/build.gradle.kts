@@ -12,14 +12,11 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                api(project(":agents:agents-tools"))
                 api(project(":http-client:http-client-core"))
-                api(project(":prompt:prompt-llm"))
-                api(project(":prompt:prompt-model"))
                 api(project(":prompt:prompt-tokenizer"))
-                api(project(":agents:agents-tools"))
                 api(project(":prompt:prompt-executor:prompt-executor-clients"))
                 api(project(":embeddings:embeddings-base"))
+                api(project(":prompt:prompt-structure"))
 
                 api(libs.ktor.client.logging)
                 api(libs.kotlinx.coroutines.core)

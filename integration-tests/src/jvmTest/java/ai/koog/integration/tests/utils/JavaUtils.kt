@@ -219,12 +219,12 @@ object JavaUtils {
     }
 
     @JvmStatic
-    fun mergeAssistantAndReasoningContent(responses: List<Message.Response>): String = responses
+    fun mergeAssistantAndReasoningContent(responses: List<Message.Assistant>): String = responses
         .asSequence()
         .filter { it is Message.Assistant || it is Message.Reasoning }.joinToString("") { it.content }
 
     @JvmStatic
-    fun firstAssistantContent(responses: List<Message.Response>): String = responses
+    fun firstAssistantContent(responses: List<Message.Assistant>): String = responses
         .firstOrNull { it is Message.Assistant }
         ?.content
         .orEmpty()

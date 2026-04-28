@@ -4,12 +4,12 @@ import ai.koog.agents.core.agent.context.DetachedPromptExecutorAPI
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.getToolCall
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
@@ -40,6 +40,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.tokenizer.SimpleRegexBasedTokenizer
 import ai.koog.serialization.kotlinx.KotlinxSerializer
@@ -168,11 +169,11 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
         MockSpanExporter().use { mockSpanExporter ->
             val strategy = strategy("llm-tool-llm-strategy") {
                 val llmRequest by nodeLLMRequest("LLM Request", allowToolCalls = true)
-                val executeTool by nodeExecuteTool("Execute Tool")
+                val executeTool by nodeExecuteTools("Execute Tool")
                 val sendToolResult by nodeLLMSendToolResult("Send Tool Result")
 
                 edge(nodeStart forwardTo llmRequest)
-                edge(llmRequest forwardTo executeTool onToolCall { true })
+                edge(llmRequest forwardTo executeTool getToolCall { true })
                 edge(executeTool forwardTo sendToolResult)
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             }
@@ -300,15 +301,15 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
         MockSpanExporter().use { mockSpanExporter ->
             val strategy = strategy("multiple-tool-calls-strategy") {
                 val llmRequest by nodeLLMRequest("Initial LLM Request", allowToolCalls = true)
-                val executeTool1 by nodeExecuteTool("Execute Tool 1")
+                val executeTool1 by nodeExecuteTools("Execute Tool 1")
                 val sendToolResult1 by nodeLLMSendToolResult("Send Tool Result 1")
-                val executeTool2 by nodeExecuteTool("Execute Tool 2")
+                val executeTool2 by nodeExecuteTools("Execute Tool 2")
                 val sendToolResult2 by nodeLLMSendToolResult("Send Tool Result 2")
 
                 edge(nodeStart forwardTo llmRequest)
-                edge(llmRequest forwardTo executeTool1 onToolCall { true })
+                edge(llmRequest forwardTo executeTool1 getToolCall { true })
                 edge(executeTool1 forwardTo sendToolResult1)
-                edge(sendToolResult1 forwardTo executeTool2 onToolCall { true })
+                edge(sendToolResult1 forwardTo executeTool2 getToolCall { true })
                 edge(sendToolResult1 forwardTo nodeFinish onAssistantMessage { true })
                 edge(executeTool2 forwardTo sendToolResult2)
                 edge(sendToolResult2 forwardTo nodeFinish transformed { input -> input.content })
@@ -548,7 +549,7 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
                 edge(nodeStart forwardTo llmStructured)
                 edge(
                     llmStructured forwardTo nodeFinish transformed { result ->
-                        result.getOrThrow().message.content
+                        result.getOrThrow().message.parts.filterIsInstance<MessagePart.Text>().joinToString("") { it.text }
                     }
                 )
             }
@@ -658,11 +659,11 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
         MockSpanExporter().use { mockSpanExporter ->
             val strategy = strategy("llm-tool-llm-strategy") {
                 val llmRequest by nodeLLMRequest("LLM Request", allowToolCalls = true)
-                val executeTool by nodeExecuteTool("Execute Tool")
+                val executeTool by nodeExecuteTools("Execute Tool")
                 val sendToolResult by nodeLLMSendToolResult("Send Tool Result")
 
                 edge(nodeStart forwardTo llmRequest)
-                edge(llmRequest forwardTo executeTool onToolCall { true })
+                edge(llmRequest forwardTo executeTool getToolCall { true })
                 edge(executeTool forwardTo sendToolResult)
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             }

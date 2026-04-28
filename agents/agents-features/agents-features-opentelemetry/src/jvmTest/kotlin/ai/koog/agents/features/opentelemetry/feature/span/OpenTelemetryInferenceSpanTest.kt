@@ -33,6 +33,7 @@ import ai.koog.http.client.KoogHttpClientException
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.tokenizer.SimpleRegexBasedTokenizer
 import ai.koog.serialization.kotlinx.KotlinxSerializer
@@ -186,7 +187,10 @@ class OpenTelemetryInferenceSpanTest : OpenTelemetryTestBase() {
             Message.System(OpenTelemetryTestAPI.Parameter.SYSTEM_PROMPT, RequestMetaInfo(testClock.now())),
             Message.User(userInput, RequestMetaInfo(testClock.now())),
             toolCallMessage(toolCallId, TestGetWeatherTool.name, """{"location":"$location"}"""),
-            Message.Tool.Result(toolCallId, TestGetWeatherTool.name, mockToolCallResponse.toolResult, RequestMetaInfo(testClock.now())),
+            Message.User(
+                parts = listOf(MessagePart.Tool.Result(id = toolCallId, tool = TestGetWeatherTool.name, output = mockToolCallResponse.toolResult)),
+                metaInfo = RequestMetaInfo(testClock.now())
+            ),
         )
 
         val expectedOutputMessages2 = listOf(
@@ -226,7 +230,7 @@ class OpenTelemetryInferenceSpanTest : OpenTelemetryTestBase() {
                         ),
                         "gen_ai.choice" to mapOf(
                             "gen_ai.system" to model.provider.id,
-                            "role" to Message.Role.Tool.name.lowercase(),
+                            "role" to "assistant",
                             "tool_calls" to """[{"function":{"name":"${TestGetWeatherTool.name}","arguments":"{\"location\":\"$location\"}"},"id":"$toolCallId","type":"function"}]""",
                             "index" to 0L,
                             "finish_reason" to FinishReasonType.ToolCalls.id,
@@ -266,13 +270,13 @@ class OpenTelemetryInferenceSpanTest : OpenTelemetryTestBase() {
                         ),
                         "gen_ai.choice" to mapOf(
                             "gen_ai.system" to model.provider.id,
-                            "role" to Message.Role.Tool.name.lowercase(),
+                            "role" to "assistant",
                             "tool_calls" to """[{"function":{"name":"${TestGetWeatherTool.name}","arguments":"{\"location\":\"$location\"}"},"id":"$toolCallId","type":"function"}]""",
                             "finish_reason" to FinishReasonType.ToolCalls.id,
                         ),
                         "gen_ai.tool.message" to mapOf(
                             "gen_ai.system" to model.provider.id,
-                            "role" to Message.Role.Tool.name.lowercase(),
+                            "role" to "tool",
                             "content" to mockToolCallResponse.toolResult,
                             "id" to toolCallId,
                         ),
@@ -355,7 +359,7 @@ class OpenTelemetryInferenceSpanTest : OpenTelemetryTestBase() {
                         ),
                         "gen_ai.choice" to mapOf(
                             "gen_ai.system" to model.provider.id,
-                            "role" to Message.Role.Tool.name.lowercase(),
+                            "role" to "assistant",
                             "tool_calls" to "[{\"function\":{\"name\":\"${HiddenString.HIDDEN_STRING_PLACEHOLDER}\",\"arguments\":\"${HiddenString.HIDDEN_STRING_PLACEHOLDER}\"},\"id\":\"$toolCallId\",\"type\":\"function\"}]",
                             "index" to 0L,
                             "finish_reason" to FinishReasonType.ToolCalls.id,
@@ -395,13 +399,13 @@ class OpenTelemetryInferenceSpanTest : OpenTelemetryTestBase() {
                         ),
                         "gen_ai.choice" to mapOf(
                             "gen_ai.system" to model.provider.id,
-                            "role" to Message.Role.Tool.name.lowercase(),
+                            "role" to "assistant",
                             "tool_calls" to "[{\"function\":{\"name\":\"${HiddenString.HIDDEN_STRING_PLACEHOLDER}\",\"arguments\":\"${HiddenString.HIDDEN_STRING_PLACEHOLDER}\"},\"id\":\"$toolCallId\",\"type\":\"function\"}]",
                             "finish_reason" to FinishReasonType.ToolCalls.id,
                         ),
                         "gen_ai.tool.message" to mapOf(
                             "gen_ai.system" to model.provider.id,
-                            "role" to Message.Role.Tool.name.lowercase(),
+                            "role" to "tool",
                             "content" to HiddenString.HIDDEN_STRING_PLACEHOLDER,
                             "id" to toolCallId,
                         ),

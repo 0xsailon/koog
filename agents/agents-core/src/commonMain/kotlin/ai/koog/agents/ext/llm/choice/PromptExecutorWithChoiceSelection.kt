@@ -29,7 +29,7 @@ public class PromptExecutorWithChoiceSelection(
     private val executor: PromptExecutor,
     private val choiceSelectionStrategy: ChoiceSelectionStrategy,
 ) : PromptExecutor() {
-    override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): List<Message.Response> {
+    override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): Message.Assistant {
         val choices = executor.executeMultipleChoices(prompt, model, tools)
 
         return choiceSelectionStrategy.choose(prompt, choices)
@@ -54,5 +54,5 @@ public class PromptExecutorWithChoiceSelection(
         prompt: Prompt,
         model: LLModel,
         tools: List<ToolDescriptor>
-    ): List<LLMChoice> = executor.executeMultipleChoices(prompt, model, tools)
+    ): LLMChoice = executor.executeMultipleChoices(prompt, model, tools)
 }

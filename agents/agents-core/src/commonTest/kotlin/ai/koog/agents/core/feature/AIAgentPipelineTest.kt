@@ -14,10 +14,10 @@ import ai.koog.agents.core.agent.execution.DEFAULT_AGENT_PATH_SEPARATOR
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.subgraph
+import ai.koog.agents.core.dsl.extension.getToolCall
 import ai.koog.agents.core.dsl.extension.nodeDoNothing
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.environment.AIAgentEnvironment
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.feature.config.FeatureConfig
@@ -468,11 +468,11 @@ class AIAgentPipelineTest {
 
         val strategy = strategy(strategyName) {
             val nodeSendInput by nodeLLMRequest()
-            val toolCallNode by nodeExecuteTool(nodeToolCallName)
+            val toolCallNode by nodeExecuteTools(nodeToolCallName)
 
             edge(nodeStart forwardTo nodeSendInput)
-            edge(nodeSendInput forwardTo toolCallNode onToolCall { true })
-            edge(toolCallNode forwardTo nodeFinish transformed { it.content })
+            edge(nodeSendInput forwardTo toolCallNode getToolCall { true })
+            edge(toolCallNode forwardTo nodeFinish transformed { it.output })
         }
 
         // Use custom tool registry with plus tool to be called
@@ -736,11 +736,11 @@ class AIAgentPipelineTest {
 
         val strategy = strategy(strategyName) {
             val nodeSendInput by nodeLLMRequest()
-            val toolCallNode by nodeExecuteTool(nodeToolCallName)
+            val toolCallNode by nodeExecuteTools(nodeToolCallName)
 
             edge(nodeStart forwardTo nodeSendInput)
-            edge(nodeSendInput forwardTo toolCallNode onToolCall { true })
-            edge(toolCallNode forwardTo nodeFinish transformed { it.content })
+            edge(nodeSendInput forwardTo toolCallNode getToolCall { true })
+            edge(toolCallNode forwardTo nodeFinish transformed { it.output })
         }
 
         val toolRegistry = ToolRegistry {

@@ -100,9 +100,9 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
         assertThat(prompt.getMessages().get(1)).isInstanceOf(Message.User.class);
         assertThat(prompt.getMessages().get(2)).isInstanceOf(Message.Assistant.class);
         assertThat(prompt.getMessages().get(3)).isInstanceOf(Message.User.class);
-        List<Message.Response> responses = executor.execute(prompt, model);
+        List<Message.Assistant> responses = executor.execute(prompt, model);
 
-        Message.Response firstResponse = responses.get(0);
+        Message.Assistant firstResponse = responses.get(0);
         assertThat(firstResponse).isInstanceOf(Message.Assistant.class);
         String content = firstResponse.getContent();
         assertThat(content.toLowerCase()).contains("four");
@@ -133,7 +133,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model);
+        List<Message.Assistant> responses = executor.execute(prompt, model);
         assertThat(responses).isNotEmpty();
         assertThat(responses.stream().anyMatch(it -> it instanceof Message.Assistant || it instanceof Message.Reasoning))
             .isTrue();
@@ -153,7 +153,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model);
+        List<Message.Assistant> responses = executor.execute(prompt, model);
         assertThat(responses).isNotEmpty();
 
         List<Message.Reasoning> reasoningMessages = responses.stream()
@@ -205,7 +205,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> firstResponse = executor.execute(firstPrompt, model);
+        List<Message.Assistant> firstResponse = executor.execute(firstPrompt, model);
         assertThat(firstResponse).isNotEmpty();
         assertThat(firstResponse.stream().anyMatch(Message.Reasoning.class::isInstance)).isTrue();
 
@@ -219,7 +219,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
         );
         Prompt secondPrompt = new Prompt(secondTurnMessages, "java-interop-reasoning-multistep-2", params);
 
-        List<Message.Response> secondResponse = executor.execute(secondPrompt, model);
+        List<Message.Assistant> secondResponse = executor.execute(secondPrompt, model);
         assertThat(secondResponse).isNotEmpty();
         String answer = JavaUtils.mergeAssistantAndReasoningContent(secondResponse);
         assertThat(answer).isNotBlank();
@@ -281,7 +281,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .withParams(params);
 
         var tools = List.of(SimpleCalculatorTool.INSTANCE.getDescriptor());
-        List<Message.Response> responses = executor.execute(prompt, model, tools);
+        List<Message.Assistant> responses = executor.execute(prompt, model, tools);
         assertThat(responses).isNotEmpty();
         assertThat(responses.stream().anyMatch(Message.Tool.Call.class::isInstance)).isTrue();
     }
@@ -307,7 +307,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model, List.of(PickColorTool.INSTANCE.getDescriptor()));
+        List<Message.Assistant> responses = executor.execute(prompt, model, List.of(PickColorTool.INSTANCE.getDescriptor()));
         assertThat(responses).isNotEmpty();
         assertThat(responses.stream().anyMatch(r ->
             r instanceof Message.Tool.Call || r instanceof Message.Assistant
@@ -335,7 +335,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model, List.of(SimpleCalculatorTool.INSTANCE.getDescriptor()));
+        List<Message.Assistant> responses = executor.execute(prompt, model, List.of(SimpleCalculatorTool.INSTANCE.getDescriptor()));
         assertThat(responses).isNotEmpty();
         assertThat(responses.stream().noneMatch(Message.Tool.Call.class::isInstance)).isTrue();
     }
@@ -361,7 +361,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model, List.of(SimpleCalculatorTool.INSTANCE.getDescriptor(), CalculatorToolNoArgs.INSTANCE.getDescriptor(), CalculatorTool.INSTANCE.getDescriptor()));
+        List<Message.Assistant> responses = executor.execute(prompt, model, List.of(SimpleCalculatorTool.INSTANCE.getDescriptor(), CalculatorToolNoArgs.INSTANCE.getDescriptor(), CalculatorTool.INSTANCE.getDescriptor()));
         assertThat(responses).isNotEmpty();
         assertThat(responses.stream().anyMatch(r ->
             r instanceof Message.Tool.Call &&
@@ -393,7 +393,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
 
         assertThat(prompt.getParams().getNumberOfChoices()).isEqualTo(2);
 
-        List<List<Message.Response>> choices = executor.executeMultipleChoices(prompt, model);
+        List<List<Message.Assistant>> choices = executor.executeMultipleChoices(prompt, model);
         assertThat(choices).hasSize(2);
         assertThat(choices).allMatch(choice -> !choice.isEmpty());
     }
@@ -453,7 +453,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model);
+        List<Message.Assistant> responses = executor.execute(prompt, model);
         assertThat(responses).isNotEmpty();
         assertThat(responses.stream().anyMatch(Message.Assistant.class::isInstance)).isTrue();
     }
@@ -483,7 +483,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model);
+        List<Message.Assistant> responses = executor.execute(prompt, model);
         assertThat(responses).isNotEmpty();
 
         String content = JavaUtils.firstAssistantContent(responses);
@@ -521,7 +521,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
             .build()
             .withParams(params);
 
-        List<Message.Response> responses = executor.execute(prompt, model);
+        List<Message.Assistant> responses = executor.execute(prompt, model);
         assertThat(responses).isNotEmpty();
 
         String content = JavaUtils.firstAssistantContent(responses);
@@ -595,7 +595,7 @@ public class JavaPromptExecutorIntegrationTest extends KoogJavaTestBase {
                 .build()
                 .withParams(params);
 
-            List<Message.Response> responses = executor.execute(prompt, model, List.of(currentCase.descriptor()));
+            List<Message.Assistant> responses = executor.execute(prompt, model, List.of(currentCase.descriptor()));
             assertThat(responses).as(currentCase.id()).isNotEmpty();
 
             Message.Tool.Call toolCall = responses.stream()

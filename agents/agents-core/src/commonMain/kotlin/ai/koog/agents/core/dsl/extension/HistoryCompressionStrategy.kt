@@ -4,6 +4,7 @@ import ai.koog.agents.annotations.KtLintIgnoreNaming
 import ai.koog.agents.core.agent.session.AIAgentLLMWriteSession
 import ai.koog.agents.core.prompt.Prompts.summarizeInTLDR
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 import kotlin.time.Instant
@@ -40,7 +41,7 @@ public abstract class HistoryCompressionStrategy {
      *                   and request a response without utilizing external tools.
      * @return A list of language model responses containing the summarized "TL;DR" of the conversation.
      */
-    protected suspend fun compressPromptIntoTLDR(llmSession: AIAgentLLMWriteSession): List<Message.Response> {
+    protected suspend fun compressPromptIntoTLDR(llmSession: AIAgentLLMWriteSession): List<Message.Assistant> {
         return with(llmSession) {
             // If there are any tool calls left in a history, we are not allowed to send a user message back
             dropTrailingToolCalls()
@@ -87,7 +88,10 @@ public abstract class HistoryCompressionStrategy {
         // Add the tldr messages
         messages.addAll(tldrMessages)
 
-        val trailingToolCalls = originalMessages.takeLastWhile { it is Message.Tool.Call }
+        val trailingToolCalls = originalMessages
+            .lastOrNull { it is Message.Assistant && it.parts.any { part -> part is MessagePart.Tool.Call } }
+            ?.let { listOf(it) } ?: emptyList()
+
         messages.addAll(trailingToolCalls)
 
         return messages

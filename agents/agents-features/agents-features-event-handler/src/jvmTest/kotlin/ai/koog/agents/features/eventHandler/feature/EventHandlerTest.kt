@@ -1,16 +1,15 @@
 package ai.koog.agents.features.eventHandler.feature
 
 import ai.koog.agents.core.dsl.builder.AIAgentNodeDelegate
-import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.subgraph
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.getToolCall
+import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStreamingAndSendResults
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
 import ai.koog.agents.core.feature.handler.subgraph.SubgraphExecutionEventContext
@@ -171,15 +170,15 @@ class EventHandlerTest {
 
         val strategy = strategy(strategyName) {
             val nodeSendInput by nodeLLMRequest("test-llm-call")
-            val nodeExecuteTool by nodeExecuteTool("test-tool-call")
+            val nodeExecuteTool by nodeExecuteTools("test-tool-call")
             val nodeSendToolResult by nodeLLMSendToolResult("test-node-llm-send-tool-result")
 
             edge(nodeStart forwardTo nodeSendInput)
-            edge(nodeSendInput forwardTo nodeExecuteTool onToolCall { true })
+            edge(nodeSendInput forwardTo nodeExecuteTool getToolCall { true })
             edge(nodeSendInput forwardTo nodeFinish onAssistantMessage { true })
             edge(nodeExecuteTool forwardTo nodeSendToolResult)
             edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-            edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
+            edge(nodeSendToolResult forwardTo nodeExecuteTool getToolCall { true })
         }
 
         val dummyTool = DummyTool()
@@ -221,7 +220,7 @@ class EventHandlerTest {
             tool = dummyToolName,
             toolArgs = dummyToolArgsEncoded,
             toolDescription = dummyToolDescription,
-            content = dummyTool.result,
+            output = dummyTool.result,
             resultKind = ToolResultKind.Success,
             result = dummyToolResultEncoded
         )
@@ -603,7 +602,7 @@ class EventHandlerTest {
                 prompt: Prompt,
                 model: ai.koog.prompt.llm.LLModel,
                 tools: List<ToolDescriptor>
-            ): List<Message.Response> = emptyList()
+            ): List<Message.Assistant> = emptyList()
 
             override fun executeStreaming(
                 prompt: Prompt,
@@ -752,7 +751,7 @@ class EventHandlerTest {
 
     //region Private Methods
 
-    private fun nodeException(name: String? = null): AIAgentNodeDelegate<String, Message.Response> =
+    private fun nodeException(name: String? = null): AIAgentNodeDelegate<String, Message.Assistant> =
         node(name) { throw IllegalStateException("Test exception") }
 
     //endregion Private Methods
