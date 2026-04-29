@@ -19,7 +19,16 @@ import ai.koog.serialization.JSONSerializer
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import ai.koog.serialization.kotlinx.toKotlinxJsonElement
 import ai.koog.serialization.typeToken
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonTransformingSerializer
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
@@ -34,7 +43,9 @@ import kotlin.uuid.Uuid
  * @property createdAt The timestamp when the checkpoint was created.
  * @property version The version of the checkpoint data structure
  */
-@Serializable
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable(with = AgentCheckpointDataSerializer::class)
+@KeepGeneratedSerializer
 public data class AgentCheckpointData(
     val checkpointId: String,
     val createdAt: Instant,
@@ -82,6 +93,53 @@ public data class AgentCheckpointData(
     @Deprecated("lstOutput is deprecated, use properties[\"lastOutput\"] instead")
     public val lastOutput: JSONElement
         get() = properties.entries["lastOutput"]!!
+}
+
+/**
+ * Custom serializer for [AgentCheckpointData] that adds backward compatibility with the
+ * pre-refactoring format, where [AgentCheckpointData.nodePath], [AgentCheckpointData.lastInput],
+ * and [AgentCheckpointData.lastOutput] were top-level fields instead of entries in [AgentCheckpointData.properties].
+ *
+ * Old format: `{ "checkpointId": ..., "nodePath": "x", "lastOutput": "y", "messageHistory": [...], ... }`
+ * New format: `{ "checkpointId": ..., "messageHistory": [...], "properties": { "nodePath": "x", "lastOutput": "y", ... }, ... }`
+ */
+@OptIn(ExperimentalSerializationApi::class)
+public object AgentCheckpointDataSerializer : JsonTransformingSerializer<AgentCheckpointData>(
+    AgentCheckpointData.generatedSerializer()
+) {
+    /**
+     * Returns true if [jsonString] was produced by the old [AgentCheckpointData] format, where
+     * `nodePath`, `lastInput`, and `lastOutput` appeared as top-level JSON fields.
+     */
+    public fun isOldFormat(jsonString: String): Boolean =
+        isOldFormat(Json.parseToJsonElement(jsonString).jsonObject)
+
+    private fun isOldFormat(element: JsonObject): Boolean = "nodePath" in element
+
+    private fun migrateFromOldFormat(element: JsonObject): JsonObject {
+        val nodePath = element["nodePath"] ?: return element
+        val lastInput = element["lastInput"] ?: JsonNull
+        val lastOutput = element["lastOutput"] ?: JsonNull
+
+        val mergedProperties = buildJsonObject {
+            (element["properties"] as? JsonObject)?.forEach { (k, v) -> put(k, v) }
+            put("nodePath", nodePath)
+            put("lastInput", lastInput)
+            put("lastOutput", lastOutput)
+        }
+
+        return buildJsonObject {
+            for ((k, v) in element) {
+                if (k !in setOf("nodePath", "lastInput", "lastOutput", "properties")) put(k, v)
+            }
+            put("properties", mergedProperties)
+        }
+    }
+
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        val obj = element.jsonObject
+        return if (isOldFormat(obj)) migrateFromOldFormat(obj) else element
+    }
 }
 
 /**
