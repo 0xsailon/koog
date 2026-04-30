@@ -6,8 +6,8 @@ import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.context.AIAgentContext
 import ai.koog.agents.core.agent.context.GraphAgentContextData
 import ai.koog.agents.core.agent.context.RollbackStrategy
-import ai.koog.agents.core.agent.context.graphAgentContextDataAdditionalKey
 import ai.koog.agents.core.agent.context.featureOrThrow
+import ai.koog.agents.core.agent.context.graphAgentContextDataAdditionalKey
 import ai.koog.agents.core.agent.context.store
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.agent.entity.AIAgentStorage

@@ -281,7 +281,7 @@ public val plannerAgentContextDataAdditionalKey: AIAgentStorageKey<PlannerAgentC
  */
 @InternalAgentsApi
 public suspend fun AIAgentContext.store(data: AgentContextData) {
-    when(data) {
+    when (data) {
         is GraphAgentContextData -> this.rootContext().storage.set(graphAgentContextDataAdditionalKey, data)
         is PlannerAgentContextData -> this.rootContext().storage.set(plannerAgentContextDataAdditionalKey, data)
     }

@@ -6,12 +6,12 @@ import ai.koog.agents.core.agent.context.AIAgentPlannerContext
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.planner.AIAgentPlanner
 import ai.koog.agents.planner.AIAgentPlannerStrategy
-import ai.koog.agents.planner.llm.PlanStep
-import ai.koog.agents.planner.llm.SimpleLLMPlanner
-import ai.koog.agents.planner.llm.SimplePlan
 import ai.koog.agents.planner.PlannerAgentExecutionPoint
 import ai.koog.agents.planner.goap.GoapAgentState
 import ai.koog.agents.planner.goap.goap
+import ai.koog.agents.planner.llm.PlanStep
+import ai.koog.agents.planner.llm.SimpleLLMPlanner
+import ai.koog.agents.planner.llm.SimplePlan
 import ai.koog.agents.snapshot.feature.AgentCheckpointData
 import ai.koog.agents.snapshot.feature.Persistence
 import ai.koog.agents.snapshot.providers.InMemoryPersistenceStorageProvider
@@ -269,9 +269,9 @@ class PlannerPersistenceTests {
                 model: LLModel,
                 tools: List<ToolDescriptor>
             ): List<Message.Response> = when (++llmCallCount) {
-                1 -> listOf(Message.Assistant(planJson, ResponseMetaInfo.Empty))  // buildPlan's requestLLMStructured
+                1 -> listOf(Message.Assistant(planJson, ResponseMetaInfo.Empty)) // buildPlan's requestLLMStructured
                 2 -> throw RuntimeException("fail step when executed the first time")
-                else -> listOf(Message.Assistant("step done", ResponseMetaInfo.Empty))  // executeStep on resume
+                else -> listOf(Message.Assistant("step done", ResponseMetaInfo.Empty)) // executeStep on resume
             }
 
             override fun executeStreaming(
