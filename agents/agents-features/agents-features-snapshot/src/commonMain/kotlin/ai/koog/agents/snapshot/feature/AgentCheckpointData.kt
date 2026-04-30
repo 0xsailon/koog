@@ -62,8 +62,8 @@ public data class AgentCheckpointData(
         checkpointId: String,
         createdAt: Instant,
         nodePath: String,
-        lastInput: JSONElement = JSONNull,
-        lastOutput: JSONElement = JSONNull,
+        lastInput: JSONElement? = null,
+        lastOutput: JSONElement? = null,
         messageHistory: List<Message>,
         version: Long,
         properties: JSONObject? = null
@@ -76,8 +76,8 @@ public data class AgentCheckpointData(
             buildMap {
                 properties?.entries?.let { putAll(it) }
                 put("nodePath", JSONPrimitive(nodePath))
-                put("lastInput", lastInput)
-                put("lastOutput", lastOutput)
+                put("lastInput", lastInput ?: JSONNull)
+                put("lastOutput", lastOutput ?: JSONNull)
             }
         )
     )
