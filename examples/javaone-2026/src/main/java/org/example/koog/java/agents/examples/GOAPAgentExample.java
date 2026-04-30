@@ -20,9 +20,15 @@ public class GOAPAgentExample {
         public AccountIssueSummary summary = null;
         public AccountIssueSolution solution = null;
         public CriticResult<AccountIssueSolution> verification = null;
+        public String _agentInput;
 
         public MyAgentState(String agentInput) {
-            super(agentInput);
+            _agentInput = agentInput;
+        }
+
+        @Override
+        public String getAgentInput() {
+            return _agentInput;
         }
 
         private static MyAgentState create(String agentInput, AccountIssueSummary summary, AccountIssueSolution solution, CriticResult<AccountIssueSolution> verification) {
