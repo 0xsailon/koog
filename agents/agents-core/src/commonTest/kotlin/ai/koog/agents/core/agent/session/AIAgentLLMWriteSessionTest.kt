@@ -2,6 +2,7 @@ package ai.koog.agents.core.agent.session
 
 import ai.koog.agents.core.CalculatorChatExecutor.testClock
 import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.agent.invoke
 import ai.koog.agents.core.environment.AIAgentEnvironment
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
@@ -62,7 +63,7 @@ class AIAgentLLMWriteSessionTest {
                 tool = toolCall.tool,
                 toolArgs = toolCall.argsJson.toKoogJSONObject(),
                 toolDescription = null,
-                content = tool.encodeResultToStringUnsafe(result, serializer),
+                output = tool.encodeResultToStringUnsafe(result, serializer),
                 resultKind = ToolResultKind.Success,
                 result = tool.encodeResultUnsafe(result, serializer)
             )
@@ -395,7 +396,7 @@ class AIAgentLLMWriteSessionTest {
 
         val session = createSession(mockExecutor, listOf(testTool))
 
-        val response = session.requestLLMMultipleOnlyCallingTools()
+        val response = session.requestLLMOnlyCallingTools()
 
         // Response is a single Message.Assistant with text and tool call parts
         assertEquals(thinkingContent, assertIs<MessagePart.Text>(response.parts[0]).text)

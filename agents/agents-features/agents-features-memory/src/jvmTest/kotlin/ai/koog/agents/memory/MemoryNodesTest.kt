@@ -4,7 +4,6 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
 import ai.koog.agents.core.annotation.InternalAgentsApi
-import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.tools.ToolRegistry
@@ -31,6 +30,7 @@ import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.ollama.client.OllamaModels
+import ai.koog.prompt.message.MessagePart
 import ai.koog.rag.base.files.JVMFileSystemProvider
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import kotlinx.coroutines.test.runTest
@@ -39,6 +39,7 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -486,6 +487,7 @@ class MemoryNodesTest {
         val resultPrompt = agent.run("Why", null)
 
         assertEquals(1, resultPrompt.messages.size)
-        assertTrue { factValue in resultPrompt.messages.first().content }
+        val textPart = assertIs<MessagePart.Text>(resultPrompt.messages.first().parts.first())
+        assertTrue { factValue in textPart.text }
     }
 }

@@ -62,10 +62,10 @@ public infix fun <IncomingOutput, IntermediateOutput, OutgoingInput> AIAgentEdge
  */
 @EdgeTransformationDslMarker
 public infix fun <IncomingOutput, IntermediateOutput, OutgoingInput> AIAgentEdgeBuilderIntermediate<IncomingOutput, IntermediateOutput, OutgoingInput>.toText(
-    transform: (suspend (List<MessagePart.Text>) -> String)? = null
+    transform: suspend (String) -> String,
 ): AIAgentEdgeBuilderIntermediate<IncomingOutput, String, OutgoingInput> {
     return getMessageParts(MessagePart.Text::class)
-        .transformed { transform?.invoke(it) ?: it.joinToString("") { part -> part.text } }
+        .transformed { it.joinToString("\n") { part -> part.text } }
 }
 
 /**

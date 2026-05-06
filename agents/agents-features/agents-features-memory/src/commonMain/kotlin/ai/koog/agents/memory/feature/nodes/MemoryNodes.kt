@@ -14,6 +14,7 @@ import ai.koog.agents.memory.model.MultipleFacts
 import ai.koog.agents.memory.model.SingleFact
 import ai.koog.agents.memory.prompts.MemoryPrompts
 import ai.koog.prompt.llm.LLModel
+import ai.koog.prompt.message.MessagePart
 import ai.koog.utils.time.KoogClock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -178,7 +179,12 @@ public inline fun <reified T> nodeSaveToMemoryAutoDetectFacts(
 
         withMemory {
             scopes.mapNotNull(scopesProfile::getScope).forEach { scope ->
-                val facts = parseFactsFromResponse(response.content)
+                val facts = response.parts.flatMap {
+                    when (it) {
+                        is MessagePart.Text -> parseFactsFromResponse(it.text)
+                        else -> emptyList()
+                    }
+                }
                 facts.forEach { (subject, fact) ->
                     agentMemory.save(fact, subject, scope)
                 }
@@ -210,7 +216,8 @@ public fun parseFactsFromResponse(
     content: String,
     clock: KoogClock = KoogClock.System,
 ): List<Pair<MemorySubject, Fact>> {
-    val parsedFacts = Json.decodeFromString<List<SubjectWithFact>>(content)
+    val parsedFacts =
+        runCatching { Json.decodeFromString<List<SubjectWithFact>>(content) }.getOrNull() ?: return emptyList()
     val groupedFacts = parsedFacts.groupBy { it.subject to it.keyword }
 
     return groupedFacts.map { (subjectWithKeyword, facts) ->

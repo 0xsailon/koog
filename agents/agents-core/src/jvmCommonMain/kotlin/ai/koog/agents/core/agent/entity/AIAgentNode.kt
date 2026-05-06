@@ -7,17 +7,13 @@ import ai.koog.agents.core.agent.context.AIAgentGraphContextBase
 import ai.koog.agents.core.annotation.InternalAgentsApi
 import ai.koog.agents.core.dsl.builder.AIAgentBuilderDslMarker
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
-import ai.koog.agents.core.dsl.extension.nodeExecuteToolsAndGetReceivedResults
 import ai.koog.agents.core.dsl.extension.nodeLLMModerateMessage
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestForceOneTool
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestOnlyCallingTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStreaming
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithoutTools
-import ai.koog.agents.core.dsl.extension.nodeSendToolReceivedResults
-import ai.koog.agents.core.dsl.extension.nodeSendToolReceivedResultsOnlyCallingTools
 import ai.koog.agents.core.dsl.extension.requestStreamingImpl
-import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.ext.llm.choice.ChoiceSelectionStrategy
@@ -155,8 +151,10 @@ public actual open class AIAgentNode<TInput, TOutput> internal actual constructo
         public fun llmRequestForceOneTool(
             name: String?,
             tool: Tool<*, *>,
-        ): AIAgentNodeBase<Message.User, Message.Assistant> =
-            nodeLLMRequestForceOneTool(name, tool.descriptor)
+        ): AIAgentNodeBase<Message.User, Message.Assistant> {
+            val node by nodeLLMRequestForceOneTool(name, tool.descriptor)
+            return node
+        }
 
         /**
          * A node that moderates a message using the LLM.
@@ -253,52 +251,6 @@ public actual open class AIAgentNode<TInput, TOutput> internal actual constructo
             name: String?,
         ): AIAgentNodeBase<Message.Assistant, Message.User> {
             val node by nodeExecuteTools(name)
-            return node
-        }
-
-        /**
-         * A node that executes all tool calls in the assistant message and returns the raw results.
-         *
-         * @param name Optional node name, defaults to delegate's property name.
-         */
-        @JavaAPI
-        @JvmOverloads
-        @JvmStatic
-        public fun executeToolsAndGetReceivedResults(
-            name: String?,
-        ): AIAgentNodeBase<Message.Assistant, List<ReceivedToolResult>> {
-            val node by nodeExecuteToolsAndGetReceivedResults(name)
-            return node
-        }
-
-        /**
-         * A node that sends a list of tool results as a user message and requests a response from the LLM.
-         *
-         * @param name Optional node name, defaults to delegate's property name.
-         */
-        @JavaAPI
-        @JvmOverloads
-        @JvmStatic
-        public fun sendToolReceivedResults(
-            name: String?,
-        ): AIAgentNodeBase<List<ReceivedToolResult>, Message.Assistant> {
-            val node by nodeSendToolReceivedResults(name)
-            return node
-        }
-
-        /**
-         * A node that sends a list of tool results as a user message and requests a response from the LLM,
-         * where only tool calls are allowed.
-         *
-         * @param name Optional node name, defaults to delegate's property name.
-         */
-        @JavaAPI
-        @JvmOverloads
-        @JvmStatic
-        public fun sendToolReceivedResultsOnlyCallingTools(
-            name: String?,
-        ): AIAgentNodeBase<List<ReceivedToolResult>, Message.Assistant> {
-            val node by nodeSendToolReceivedResultsOnlyCallingTools(name)
             return node
         }
 

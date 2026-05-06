@@ -247,7 +247,7 @@ public class OllamaClient @JvmOverloads constructor(
     }
 
     private fun parseResponse(response: OllamaChatResponseDTO): Message.Assistant {
-        val messages = response.message
+        val message = response.message
             ?: throw LLMClientException(clientName = clientName, message = "Missing message in Ollama response")
 
         // Get token counts from the response, or use null if not available
@@ -271,8 +271,8 @@ public class OllamaClient @JvmOverloads constructor(
 
         return Message.Assistant(
             parts = buildList {
-                messages.content.takeIf { it.isNotEmpty() }?.let { add(MessagePart.Text(it)) }
-                messages.toolCalls?.forEachIndexed { index, toolCall ->
+                message.content.takeIf { it.isNotEmpty() }?.let { add(MessagePart.Text(it)) }
+                message.toolCalls?.forEachIndexed { index, toolCall ->
                     val name = toolCall.function.name
                     val content = Json.encodeToString(toolCall.function.arguments)
                     val id = generateToolCallId(name, content, index)

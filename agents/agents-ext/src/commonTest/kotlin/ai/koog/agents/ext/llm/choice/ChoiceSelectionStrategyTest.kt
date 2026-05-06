@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.time.Instant
 
 class ChoiceSelectionStrategyTest {

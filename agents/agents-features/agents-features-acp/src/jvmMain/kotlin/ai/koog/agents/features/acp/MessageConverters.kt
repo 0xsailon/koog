@@ -255,7 +255,7 @@ public fun Message.Assistant.toAcpEvents(tools: List<ToolDescriptor> = emptyList
                                     ?: UNKNOWN_TOOL_DESCRIPTION,
                                 // TODO: Support kind for tools
                                 status = ToolCallStatus.PENDING,
-                                rawInput = part.args,
+                                rawInput = part.argsJson,
                             )
                         )
                     )

@@ -35,7 +35,7 @@ class AIAgentGenericTypesTest {
 
             val callLLM by nodeLLMRequest()
 
-            edge(nodeStart forwardTo callLLM transformed { input -> processInput(input) })
+            edge(nodeStart forwardTo callLLM toUserMessage { input -> processInput(input) })
             edge(callLLM forwardTo nodeFinish transformed { output -> processOutput(output) })
         }
 

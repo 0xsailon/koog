@@ -31,12 +31,12 @@ class TestLLMExecutor : PromptExecutor() {
         private set
 
     // Store the messages for inspection
-    val messages = mutableListOf<Message>()
+    var messages: MutableList<Message>? = null
 
     // Reset the state for a new test
     fun reset() {
         tldrCount = 0
-        messages.clear()
+        messages = null
     }
 
     override suspend fun execute(prompt: Prompt, model: LLModel, tools: List<ToolDescriptor>): Message.Assistant {
@@ -62,7 +62,7 @@ class TestLLMExecutor : PromptExecutor() {
         prompt.messages.forEach { logger.debug { "Message: $it" } }
 
         // Store all messages for later inspection
-        messages.addAll(prompt.messages)
+        messages = prompt.messages.toMutableList()
 
         // For compression test, return a TLDR summary
         if (prompt.messages.any {
@@ -77,12 +77,12 @@ class TestLLMExecutor : PromptExecutor() {
                 "TLDR #$tldrCount: Summary of conversation history",
                 metaInfo = ResponseMetaInfo.create(testClock)
             )
-            messages.add(tldrResponse)
+            messages?.add(tldrResponse)
             return tldrResponse
         }
 
         val response = Message.Assistant(DEFAULT_ASSISTANT_RESPONSE, metaInfo = ResponseMetaInfo.create(testClock))
-        messages.add(response)
+        messages?.add(response)
         return response
     }
 

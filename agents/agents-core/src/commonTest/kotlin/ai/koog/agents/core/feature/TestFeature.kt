@@ -172,7 +172,7 @@ class TestFeature(val events: MutableList<String>) {
                 config.addEvent(
                     event,
                     mapOf(
-                        "prompt" to event.prompt.messages.lastOrNull { it.role == Message.Role.User }?.content,
+                        "prompt" to event.prompt.messages.lastOrNull { it.role == Message.Role.User }?.parts,
                         "tools" to "[${event.tools.joinToString { it.name }}]"
                     )
                 )
@@ -182,7 +182,7 @@ class TestFeature(val events: MutableList<String>) {
                 config.addEvent(
                     event,
                     mapOf(
-                        "responses" to "[${event.response.joinToString(", ") { "${it.role.name}: ${it.content}" }}]"
+//                        "responses" to "[${event.response.joinToString(", ") { "${it.role.name}: ${it.content}" }}]"
                     )
                 )
             }

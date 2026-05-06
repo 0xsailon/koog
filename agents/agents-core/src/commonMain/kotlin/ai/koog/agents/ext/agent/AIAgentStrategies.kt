@@ -145,7 +145,7 @@ public fun reActStrategy(
     edge(
         nodeRequestLLMWithTools forwardTo nodeFinish
             onToolCalls { false }
-            toText { it.joinToString("\n") { part -> part.text } }
+            toText { it }
     )
 }
 

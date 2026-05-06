@@ -37,9 +37,7 @@ class SingleLLMPromptExecutorTest {
 
     @Test
     fun testExecute() = runTest {
-        val responses = listOf(
-            Message.Assistant("Hello", ResponseMetaInfo.create(mockClock))
-        )
+        val responses = Message.Assistant("Hello", ResponseMetaInfo.create(mockClock))
         val client = CapturingLLMClient(executeResponse = responses)
         val executor = SingleLLMPromptExecutor(client)
 
@@ -72,9 +70,9 @@ class SingleLLMPromptExecutorTest {
     @Test
     fun testExecuteMultipleChoices() = runTest {
         val meta = ResponseMetaInfo.create(mockClock)
-        val choices: List<LLMChoice> = listOf(
-            listOf(Message.Assistant("Hi there!", meta)),
-            listOf(Message.Assistant("Hello world!", meta)),
+        val choices: LLMChoice = listOf(
+            Message.Assistant("Hi there!", meta),
+            Message.Assistant("Hello world!", meta),
         )
 
         val client = CapturingLLMClient(choices = choices)
