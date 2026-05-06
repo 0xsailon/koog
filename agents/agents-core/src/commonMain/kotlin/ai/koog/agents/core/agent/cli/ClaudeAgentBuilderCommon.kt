@@ -104,12 +104,13 @@ public abstract class ClaudeAgentBuilderCommon<Self : ClaudeAgentBuilderCommon<S
      * @return A configured [CliAIAgent] instance that accepts String input and produces [CliAIAgentResponse].
      */
     public fun build(): CliAIAgent<String, CliAIAgentResponse> {
-        val finalTransport = requireNotNull(this.transport) { "Transport is required" }
         return CliAIAgent.claude(
-            transport = finalTransport,
+            transport = transport,
             apiKey = apiKey,
-            systemPrompt = null,
-            llModel = null,
+            binaryPath = binaryPath,
+            name = name,
+            systemPrompt = systemPrompt,
+            llModel = llModel,
             permissionMode = permissionMode,
             additionalFlags = additionalFlags,
             workspace = workspace,

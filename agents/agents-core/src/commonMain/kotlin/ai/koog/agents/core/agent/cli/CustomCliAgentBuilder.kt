@@ -74,13 +74,12 @@ public class CustomCliAgentBuilder<Input, Output> internal constructor(
      * Builds the custom CLI agent.
      */
     public fun build(): CliAIAgent<Input, Output> {
-        val finalTransport = requireNotNull(this.transport) { "Transport is required" }
         val binaryPath = requireNotNull(binaryPath) { "Binary path is required" }
         val generateRequest = requireNotNull(this.generateRequest) { "Generate request is required" }
         val extractOutput = requireNotNull(this.extractOutput) { "Extract output is required" }
 
         val customConfig = object : CliConfig<Input, Output> {
-            override val transport: CliTransport = finalTransport
+            override val transport: CliTransport = this@CustomCliAgentBuilder.transport
             override val binaryPath: String = binaryPath
             override val name: String = this@CustomCliAgentBuilder.name ?: "custom-cli-agent"
             override val workspace: String = this@CustomCliAgentBuilder.workspace

@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.toList
 public class AIAgentCliStrategy<Input, Output> internal constructor(
     private val config: CliConfig<Input, Output>
 ) : AIAgentStrategy<Input, Output, AIAgentCliContext> {
-    override val name: String = config.binaryPath
+    override val name: String = config.name
 
     override suspend fun execute(context: AIAgentCliContext, input: Input): Output {
         checkAvailability()
@@ -37,7 +37,7 @@ public class AIAgentCliStrategy<Input, Output> internal constructor(
             .onEach { logEvent(it) }
             .toList()
 
-        val result = config.extractOutput(events.filterIsInstance<CliEvent.Line>(), logger)
+        val result = config.extractOutput(events, logger)
 
         return result
     }

@@ -64,7 +64,7 @@ public abstract class ProcessCliTransport : CliTransport {
                 process.inputStream.bufferedReader().useLines { lines ->
                     lines.forEach { content ->
                         logger.debug { "Process stdout: $content" }
-                        trySend(CliEvent.Stdout(content))
+                        send(CliEvent.Stdout(content))
                     }
                 }
             }
@@ -73,7 +73,7 @@ public abstract class ProcessCliTransport : CliTransport {
                 process.errorStream.bufferedReader().useLines { lines ->
                     lines.forEach { content ->
                         logger.warn { "Process stderr: $content" }
-                        trySend(CliEvent.Stderr(content))
+                        send(CliEvent.Stderr(content))
                     }
                 }
             }
@@ -85,7 +85,7 @@ public abstract class ProcessCliTransport : CliTransport {
                         if (withTimeoutOrNull(timeout) { process.waitFor() } == null) {
                             logger.error { "Execution timed out after $timeout. Destroying process." }
                             process.destroy()
-                            throw CliTimeoutException("Execution timed out after $timeout", timeout)
+                            throw CliTimeoutException(timeout)
                         }
                         process.exitValue()
                     } else {
@@ -101,14 +101,14 @@ public abstract class ProcessCliTransport : CliTransport {
                     }
 
                     val exit = CliEvent.Exit(code)
-                    trySend(exit)
+                    send(exit)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: CliTimeoutException) {
-                    trySend(CliEvent.Failed(e.message))
+                    send(CliEvent.Failed("Timeout exceeded: ${e.message}"))
                 } catch (e: Exception) {
                     logger.error(e) { "Error while waiting for process: ${e.message}" }
-                    trySend(CliEvent.Failed(e.message ?: e.toString()))
+                    send(CliEvent.Failed(e.message ?: e.toString()))
                 } finally {
                     close()
                 }
@@ -139,7 +139,7 @@ public abstract class ProcessCliTransport : CliTransport {
 
             if (!finished) {
                 process.destroy()
-                throw CliTimeoutException("Process timed out after $timeout", timeout)
+                throw CliTimeoutException(timeout)
             }
 
             process.exitValue()

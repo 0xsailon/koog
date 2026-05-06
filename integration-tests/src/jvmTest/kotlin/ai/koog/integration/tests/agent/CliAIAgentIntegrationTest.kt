@@ -138,7 +138,7 @@ class CliAIAgentIntegrationTest : AIAgentTestBase() {
 
         val result = agent.run("echo 'hi'")
         assertResponse(result.response)
-        assertNotNull(result.result)
+        assertNotNull(result.structuredResult)
     }
 
     @Test

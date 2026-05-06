@@ -35,11 +35,11 @@ public data class CliAIAgentResponse(
  * Represents a container for structured data from a CLI agent.
  *
  * @param T The type of the structured data.
- * @property result The parsed structured data.
+ * @property structuredResult The parsed structured data.
  * @property response The original response from which the result was parsed.
  */
 @Serializable
 public data class CliAgentStructuredResponse<out T>(
-    val result: T?,
+    val structuredResult: T?,
     val response: CliAIAgentResponse
 )

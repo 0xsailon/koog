@@ -7,7 +7,6 @@ import ai.koog.cli.transport.CliTransport;
 import ai.koog.integration.tests.base.KoogJavaTestBase;
 import ai.koog.integration.tests.utils.StructuredResults;
 import ai.koog.integration.tests.utils.TestCredentials;
-import ai.koog.integration.tests.utils.annotations.Retry;
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels;
 import ai.koog.prompt.executor.clients.openai.OpenAIModels;
 import org.junit.jupiter.api.Test;
@@ -51,7 +50,7 @@ public class JavaCliAIAgentIntegrationTest extends KoogJavaTestBase {
 
     private <T> void assertStructuredResponseIsSuccessful(CliAgentStructuredResponse<T> response) {
         assertNotNull(response);
-        assertNotNull(response.getResult());
+        assertNotNull(response.getStructuredResult());
         assertNotNull(response.getResponse());
         assertFalse(response.getResponse().isError(), "Run should be successful");
     }

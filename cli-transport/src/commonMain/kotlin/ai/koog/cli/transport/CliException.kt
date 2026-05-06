@@ -17,5 +17,5 @@ public class CliNotFoundException(message: String, cause: Throwable? = null) : C
  *
  * @property timeout The duration after which the execution timed out.
  */
-public class CliTimeoutException(message: String, public val timeout: Duration, cause: Throwable? = null) :
-    CliException(message, cause)
+public class CliTimeoutException(public val timeout: Duration) :
+    CliException("Cli execution timed out after ${timeout.inWholeSeconds} seconds")

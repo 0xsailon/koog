@@ -93,7 +93,7 @@ public class CodexCliConfig<Input>(
 
     override fun flags(model: LLModel, systemMessages: List<Message.System>): List<String> =
         buildList {
-            add("exec")
+            add("exec") // non-interactive mode to disallow the cli to ask for approval
             add("--json")
             add("--skip-git-repo-check")
 

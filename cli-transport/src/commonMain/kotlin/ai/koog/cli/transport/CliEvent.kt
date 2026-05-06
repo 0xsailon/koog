@@ -33,5 +33,5 @@ public sealed interface CliEvent {
     /**
      * Reports a failure during cli execution.
      */
-    public data class Failed(public val message: String?) : CliEvent
+    public data class Failed(public val message: String) : CliEvent
 }

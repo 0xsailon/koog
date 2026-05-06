@@ -26,24 +26,24 @@ import kotlin.time.Duration
  */
 public enum class ClaudePermissionMode(public val value: String) {
     /**
-     * Automatically accept all edits.
-     */
-    AcceptEdits("acceptEdits"),
-
-    /**
-     * Bypass all permission checks.
-     */
-    BypassPermissions("bypassPermissions"),
-
-    /**
      * Default permission mode.
      */
     Default("default"),
 
     /**
-     * Delegate permissions to the parent agent.
+     * Automatically accept all edits.
      */
-    Delegate("delegate"),
+    AcceptEdits("acceptEdits"),
+
+    /**
+     * Plan mode: only show planned actions without executing them.
+     */
+    Plan("plan"),
+
+    /**
+     * Auto mode: automatically accept all edits and plan actions.
+     */
+    Auto("auto"),
 
     /**
      * Do not ask for permissions.
@@ -51,9 +51,9 @@ public enum class ClaudePermissionMode(public val value: String) {
     DontAsk("dontAsk"),
 
     /**
-     * Plan mode: only show planned actions without executing them.
+     * Bypass all permission checks.
      */
-    Plan("plan")
+    BypassPermissions("bypassPermissions"),
 }
 
 /**
@@ -71,7 +71,7 @@ public object ClaudeCliHelper {
         additionalFlags: List<String>
     ): List<String> =
         buildList {
-            add("-p")
+            add("-p") // non-interactive mode to disallow the cli to ask for approval
             add("--output-format")
             add("stream-json")
             add("--verbose")
@@ -171,7 +171,7 @@ public object ClaudeCliHelper {
         val failedEvent = events.filterIsInstance<CliEvent.Failed>().firstOrNull()
         if (failedEvent != null) {
             return CliAgentStructuredResponse(
-                result = null,
+                structuredResult = null,
                 response = CliAIAgentResponse(
                     content = "Cli failed: ${failedEvent.message}",
                     isError = true,
@@ -182,16 +182,15 @@ public object ClaudeCliHelper {
 
         val response = extractOutput(events, logger)
         val jsonEvents = toJsonStdoutEvents(events, logger)
-        val resultString = jsonEvents
+        val structuredResult = jsonEvents
             .lastOrNull { it["type"]?.stringVal == "result" }
             ?.get("structured_output")
             ?.toString()
-            ?: throw CliException("No structured output found")
-        val result = structure.parse(resultString)
+            ?.let { structure.parse(it) }
 
         return CliAgentStructuredResponse(
-            result = result,
-            response = response.copy(content = resultString)
+            structuredResult = structuredResult,
+            response = response.copy(isError = response.isError || structuredResult == null)
         )
     }
 

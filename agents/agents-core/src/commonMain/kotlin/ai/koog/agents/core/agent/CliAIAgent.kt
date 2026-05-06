@@ -95,6 +95,8 @@ public class CliAIAgent<Input, Output> internal constructor(
         installFeatures
     )
 
+    private val toolRegistry: ToolRegistry = ToolRegistry.EMPTY
+
     override val pipeline: AIAgentFunctionalPipeline = AIAgentFunctionalPipeline(agentConfig, clock)
 
     /**
@@ -121,8 +123,6 @@ public class CliAIAgent<Input, Output> internal constructor(
     }
 
     override suspend fun prepareContext(agentInput: Input, runId: String, eventId: String): AIAgentCliContext {
-        val toolRegistry = ToolRegistry.EMPTY
-
         val environment = prepareEnvironment()
 
         val initialLLMContext = AIAgentLLMContext(
@@ -186,7 +186,7 @@ public class CliAIAgent<Input, Output> internal constructor(
         val baseEnvironment = GenericAgentEnvironment(
             agentId = id,
             logger = logger,
-            toolRegistry = ToolRegistry.EMPTY,
+            toolRegistry = toolRegistry,
             serializer = agentConfig.serializer,
         )
 
