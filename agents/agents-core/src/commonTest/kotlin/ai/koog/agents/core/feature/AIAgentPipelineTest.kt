@@ -18,7 +18,7 @@ import ai.koog.agents.core.dsl.extension.nodeDoNothing
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithoutTools
-import ai.koog.agents.core.dsl.extension.onToolCalls
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.dsl.extension.toText
 import ai.koog.agents.core.dsl.extension.toUserMessage
 import ai.koog.agents.core.environment.AIAgentEnvironment
@@ -606,7 +606,7 @@ class AIAgentPipelineTest {
             val toolCallNode by nodeExecuteTools(nodeToolCallName)
 
             edge(nodeStart forwardTo nodeSendInput toUserMessage { it })
-            edge(nodeSendInput forwardTo toolCallNode onToolCalls { true })
+            edge(nodeSendInput forwardTo toolCallNode onToolCall { true })
             edge(toolCallNode forwardTo nodeFinish toText { it })
         }
 
@@ -903,7 +903,7 @@ class AIAgentPipelineTest {
             val toolCallNode by nodeExecuteTools(nodeToolCallName)
 
             edge(nodeStart forwardTo nodeSendInput toUserMessage { it })
-            edge(nodeSendInput forwardTo toolCallNode onToolCalls { true })
+            edge(nodeSendInput forwardTo toolCallNode onToolCall { true })
             edge(toolCallNode forwardTo nodeFinish toText { it })
         }
 

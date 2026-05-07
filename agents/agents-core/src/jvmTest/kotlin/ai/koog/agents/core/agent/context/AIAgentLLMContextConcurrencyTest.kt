@@ -168,7 +168,7 @@ class AIAgentLLMContextConcurrencyTest {
                 return ReceivedToolResult(
                     id = toolCall.id,
                     tool = toolCall.tool,
-                    toolArgs = toolCall.args.toKoogJSONObject(),
+                    toolArgs = toolCall.argsJson.toKoogJSONObject(),
                     toolDescription = null,
                     output = "",
                     resultKind = ToolResultKind.Success,

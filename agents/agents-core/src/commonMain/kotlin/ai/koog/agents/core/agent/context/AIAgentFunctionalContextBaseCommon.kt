@@ -92,7 +92,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             }
 
             if (allowToolCalls) {
-                this.requestLLM()
+                requestLLM()
             } else {
                 requestLLMWithoutTools()
             }
@@ -105,7 +105,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
      * @param action A lambda function to execute if the response is an instance of [Message.Assistant].
      */
-    public fun onTextMessage(
+    public fun onTextPart(
         response: Message.Assistant,
         action: (MessagePart.Text) -> Unit
     ) {
@@ -262,7 +262,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
                 user(message)
             }
 
-            this.requestLLM()
+            requestLLM()
         }
     }
 
@@ -368,7 +368,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
                 }
             }
 
-            this.requestLLM()
+            requestLLM()
         }
     }
 

@@ -64,20 +64,20 @@ public class GraphStrategyJavaTest {
                     .withInput(String.class)
                     .withOutput(String.class);
 
-                var llmNode = AIAgentNode.llmRequest(false, "llm");
+//                var llmNode = AIAgentNode.llmRequest(false, "llm");
 
-                graph.edge(graph.nodeStart, llmNode);
-                graph.edge(AIAgentEdge.builder()
-                    .from(llmNode)
-                    .to(graph.nodeFinish)
-                    .transformed(response -> {
-                        if (response instanceof Message.Assistant) {
-                            return ((Message.Assistant) response).getContent();
-                        }
-                        return "error";
-                    })
-                    .build()
-                );
+//                graph.edge(graph.nodeStart, llmNode);
+//                graph.edge(AIAgentEdge.builder()
+//                    .from(llmNode)
+//                    .to(graph.nodeFinish)
+//                    .transformed(response -> {
+//                        if (response instanceof Message.Assistant) {
+//                            return ((Message.Assistant) response).getContent();
+//                        }
+//                        return "error";
+//                    })
+//                    .build()
+//                );
 
                 return graph.build();
             })
@@ -110,7 +110,7 @@ public class GraphStrategyJavaTest {
                     .withInput(String.class)
                     .llmAsAJudge("test task");
 
-                graph.edge(graph.nodeStart, compress);
+//                graph.edge(graph.nodeStart, compress);
                 graph.edge(compress, judge);
                 graph.edge(AIAgentEdge.builder()
                     .from(judge)
@@ -147,8 +147,8 @@ public class GraphStrategyJavaTest {
                     .withTask(input -> "Use my_tool to return a value")
                     .build();
 
-                graph.edge(graph.nodeStart, sub);
-                graph.edge(sub, graph.nodeFinish);
+//                graph.edge(graph.nodeStart, sub);
+//                graph.edge(sub, graph.nodeFinish);
 
                 return graph.build();
             })

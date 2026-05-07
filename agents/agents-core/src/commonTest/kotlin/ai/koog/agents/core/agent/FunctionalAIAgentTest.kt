@@ -101,7 +101,7 @@ class FunctionalAIAgentTest {
             strategy = functionalStrategy { inputParam ->
                 val resp = llm.writeSession {
                     appendPrompt { user(inputParam) }
-                    this.requestLLM()
+                    requestLLM()
                 }
                 resp.parts.filterIsInstance<MessagePart.Text>().first().text
             },

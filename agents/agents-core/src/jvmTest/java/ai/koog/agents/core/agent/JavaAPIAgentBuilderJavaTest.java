@@ -84,9 +84,9 @@ public class JavaAPIAgentBuilderJavaTest {
             .functionalStrategy("myStrategy", (AIAgentFunctionalContext context, String userInput) -> {
                 // just echo last LLM answer to ensure the pipeline works
                 Message.Assistant resp = context.requestLLM(userInput);
-                if (resp instanceof Message.Assistant) {
-                    return ((Message.Assistant) resp).getContent();
-                }
+//                if (resp instanceof Message.Assistant.) {
+//                    return ((Message.Assistant) resp).getContent();
+//                }
                 return "";
             })
             .build();
@@ -109,7 +109,7 @@ public class JavaAPIAgentBuilderJavaTest {
                 Message.Assistant r = session.requestLLM();
                 // restore and return assistant content
                 session.setPrompt(original);
-                if (r instanceof Message.Assistant) return ((Message.Assistant) r).getContent();
+//                if (r instanceof Message.Assistant) return ((Message.Assistant) r).getContent();
                 return "";
             });
             return content + ":" + input;

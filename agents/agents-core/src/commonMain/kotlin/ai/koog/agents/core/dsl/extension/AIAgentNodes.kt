@@ -439,11 +439,18 @@ public suspend fun <T> AIAgentGraphContextBase.llmCompressHistoryImpl(
 // Execute Tool nodes
 // ================
 
-private suspend fun executeTools(environment: AIAgentEnvironment, message: Message): List<ReceivedToolResult> {
+private suspend fun executeTools(
+    environment: AIAgentEnvironment,
+    message: Message,
+    parallel: Boolean
+): List<ReceivedToolResult> {
     return buildList {
-        message.parts.forEach {
-            if (it is MessagePart.Tool.Call) {
-                val toolResult = environment.executeTool(it)
+        val toolCalls = message.parts.filterIsInstance<MessagePart.Tool.Call>()
+        if (parallel) {
+            addAll(environment.executeTools(toolCalls))
+        } else {
+            toolCalls.forEach { toolCall ->
+                val toolResult = environment.executeTool(toolCall)
                 add(toolResult)
             }
         }
@@ -452,10 +459,11 @@ private suspend fun executeTools(environment: AIAgentEnvironment, message: Messa
 
 @AIAgentBuilderDslMarker
 public fun nodeExecuteTools(
-    name: String? = null
+    name: String? = null,
+    parallel: Boolean = false,
 ): AIAgentNodeDelegate<Message.Assistant, Message.User> =
     node(name) { message ->
-        val parts = executeTools(environment, message).map { it.toMessagePart() }
+        val parts = executeTools(environment, message, parallel).map { it.toMessagePart() }
         llm.writeSession {
             userMessage(parts)
         }
@@ -465,10 +473,11 @@ public fun nodeExecuteTools(
 
 @AIAgentBuilderDslMarker
 public fun nodeExecuteToolsAndGetReceivedResults(
-    name: String? = null
+    name: String? = null,
+    parallel: Boolean = false,
 ): AIAgentNodeDelegate<Message.Assistant, List<ReceivedToolResult>> =
     node(name) { message ->
-        executeTools(environment, message)
+        executeTools(environment, message, parallel)
     }
 
 @AIAgentBuilderDslMarker

@@ -3,8 +3,7 @@ package ai.koog.agents.core.environment
 import ai.koog.agents.core.tools.SimpleTool
 import ai.koog.agents.core.tools.ToolException
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.prompt.message.Message.Tool
-import ai.koog.prompt.message.ResponseMetaInfo
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import ai.koog.serialization.typeToken
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -77,11 +76,10 @@ class GenericAgentEnvironmentTest {
             serializer = serializer,
         )
 
-        val toolCall = Tool.Call(
+        val toolCall = MessagePart.Tool.Call(
             id = "1",
             tool = "required_args",
-            content = "not-json",
-            metaInfo = ResponseMetaInfo.Empty,
+            args = "not-json",
         )
 
         val result = environment.executeTool(toolCall)
@@ -98,11 +96,10 @@ class GenericAgentEnvironmentTest {
             serializer = serializer,
         )
 
-        val toolCall = Tool.Call(
+        val toolCall = MessagePart.Tool.Call(
             id = "1",
             tool = "required_args",
-            content = "{}",
-            metaInfo = ResponseMetaInfo.Empty,
+            args = "{}",
         )
 
         val result = environment.executeTool(toolCall)
@@ -120,11 +117,10 @@ class GenericAgentEnvironmentTest {
         )
 
         val result = environment.executeTool(
-            Tool.Call(
+            MessagePart.Tool.Call(
                 id = "1",
                 tool = "missing_tool",
-                content = """{"required":"value"}""",
-                metaInfo = ResponseMetaInfo.Empty,
+                args = """{"required":"value"}""",
             )
         )
 
@@ -143,11 +139,10 @@ class GenericAgentEnvironmentTest {
         )
 
         val result = environment.executeTool(
-            Tool.Call(
+            MessagePart.Tool.Call(
                 id = "1",
                 tool = "validation_tool",
-                content = """{"required":"value"}""",
-                metaInfo = ResponseMetaInfo.Empty,
+                args = """{"required":"value"}""",
             )
         )
 
@@ -165,11 +160,10 @@ class GenericAgentEnvironmentTest {
         )
 
         val result = environment.executeTool(
-            Tool.Call(
+            MessagePart.Tool.Call(
                 id = "1",
                 tool = "failing_tool",
-                content = """{"required":"value"}""",
-                metaInfo = ResponseMetaInfo.Empty,
+                args = """{"required":"value"}""",
             )
         )
 
@@ -187,11 +181,10 @@ class GenericAgentEnvironmentTest {
         )
 
         val result = environment.executeTool(
-            Tool.Call(
+            MessagePart.Tool.Call(
                 id = "1",
                 tool = "success_tool",
-                content = """{"required":"value"}""",
-                metaInfo = ResponseMetaInfo.Empty,
+                args = """{"required":"value"}""",
             )
         )
 
@@ -210,11 +203,10 @@ class GenericAgentEnvironmentTest {
 
         assertFailsWith<CancellationException> {
             environment.executeTool(
-                Tool.Call(
+                MessagePart.Tool.Call(
                     id = "1",
                     tool = "cancellable_tool",
-                    content = """{"required":"value"}""",
-                    metaInfo = ResponseMetaInfo.Empty,
+                    args = """{"required":"value"}""",
                 )
             )
         }

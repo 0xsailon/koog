@@ -1,6 +1,5 @@
 package ai.koog.agents.ext.agent
 
-import ai.koog.agents.core.agent.ToolCalls
 import ai.koog.agents.core.agent.context.AIAgentContext
 import ai.koog.agents.core.agent.context.AIAgentGraphContextBase
 import ai.koog.agents.core.agent.context.DetachedPromptExecutorAPI
@@ -13,10 +12,10 @@ import ai.koog.agents.core.dsl.builder.AIAgentSubgraphDelegate
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.subgraph
 import ai.koog.agents.core.dsl.extension.getToolCalls
-import ai.koog.agents.core.dsl.extension.nodeLLMRequest
+import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithUserText
 import ai.koog.agents.core.dsl.extension.nodeSendToolReceivedResults
-import ai.koog.agents.core.dsl.extension.onToolCalls
-import ai.koog.agents.core.dsl.extension.toUserMessage
+import ai.koog.agents.core.dsl.extension.onNoneToolCall
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
 import ai.koog.agents.core.environment.toSafeResult
@@ -156,7 +155,12 @@ internal constructor(
 
     private fun decodeOutput(rawArgs: JSONObject, serializer: JSONSerializer): Output {
         return json.decodeFromJsonElement<FinishResult<Output>>(
-            deserializer = FinishResult.serializer(KotlinxDelegateSerializer(customSerializer ?: serializer, outputType)),
+            deserializer = FinishResult.serializer(
+                KotlinxDelegateSerializer(
+                    customSerializer ?: serializer,
+                    outputType
+                )
+            ),
             element = rawArgs.toKotlinxJsonObject(),
         ).result
     }
@@ -197,7 +201,7 @@ internal constructor(
  * @param name An optional name for the subgraph. Defaults to null if not provided.
  * @param llmModel Optional language model to be used within the subgraph. Defaults to null.
  * @param llmParams Optional parameters for configuring the language model behavior. Defaults to null.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspending lambda function that defines the task for the subgraph, taking the input as a parameter.
@@ -210,7 +214,7 @@ public inline fun <reified Input, reified Output> subgraphWithTask(
     toolSelectionStrategy: ToolSelectionStrategy = ToolSelectionStrategy.ALL,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -225,7 +229,7 @@ public inline fun <reified Input, reified Output> subgraphWithTask(
 
     setupSubgraphWithTask<Input, Output, Output>(
         finishTool = finishTool,
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         defineTask = defineTask
     )
@@ -243,7 +247,7 @@ public inline fun <reified Input, reified Output> subgraphWithTask(
  * @param name An optional name for the subgraph. Defaults to null if not provided.
  * @param llmModel Optional language model to be used within the subgraph. Defaults to null.
  * @param llmParams Optional parameters for configuring the language model behavior. Defaults to null.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspending lambda function that defines the task for the subgraph, taking the input as a parameter.
@@ -259,7 +263,7 @@ public fun <Input : Any, Output : Any> subgraphWithTask(
     toolSelectionStrategy: ToolSelectionStrategy = ToolSelectionStrategy.ALL,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -278,7 +282,7 @@ public fun <Input : Any, Output : Any> subgraphWithTask(
         finishTool = finishTool,
         inputType = inputType,
         outputTransformedType = outputType,
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         defineTask = defineTask
     )
@@ -292,7 +296,7 @@ public fun <Input : Any, Output : Any> subgraphWithTask(
  * @param name An optional name for the subgraph. Defaults to null if not provided.
  * @param llmModel An optional language model to be used in the subgraph. If not specified, a default model may be used.
  * @param llmParams Optional parameters to customize the behavior of the language model in the subgraph.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspend function that defines the task to be executed by the subgraph based on the given input.
@@ -304,7 +308,7 @@ public inline fun <reified Input, reified Output> subgraphWithTask(
     name: String? = null,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -313,7 +317,7 @@ public inline fun <reified Input, reified Output> subgraphWithTask(
     name = name,
     llmModel = llmModel,
     llmParams = llmParams,
-    runMode = runMode,
+    parallelTools = parallelTools,
     assistantResponseRepeatMax = assistantResponseRepeatMax,
     responseProcessor = responseProcessor,
     defineTask = defineTask
@@ -323,14 +327,13 @@ public inline fun <reified Input, reified Output> subgraphWithTask(
  * Defines a subgraph with a specific task to be performed by an AI agent.
  *
  * @param Input The input type provided to the subgraph.
- * @param Output The output type returned by the subgraph.
  * @param OutputTransformed The transformed output type after finishing the task.
  * @param toolSelectionStrategy The strategy to be used for selecting tools within the subgraph.
  * @param finishTool The tool responsible for finalizing the task and producing the transformed output.
  * @param name An optional name for the subgraph. Defaults to null if not provided.
  * @param llmModel The optional language model to be used in the subgraph for processing requests.
  * @param llmParams The optional parameters to customize the behavior of the language model.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A lambda function to define the task logic, which accepts the input and returns a task description.
@@ -346,7 +349,7 @@ public fun <Input : Any, OutputTransformed : Any> subgraphWithTask(
     name: String? = null,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -363,7 +366,7 @@ public fun <Input : Any, OutputTransformed : Any> subgraphWithTask(
         finishTool = finishTool,
         inputType = inputType,
         outputTransformedType = finishTool.resultType,
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         defineTask = defineTask,
     )
@@ -380,7 +383,7 @@ public fun <Input : Any, OutputTransformed : Any> subgraphWithTask(
  * @param name An optional name for the subgraph. Defaults to null if not provided.
  * @param llmModel The optional language model to be used in the subgraph for processing requests.
  * @param llmParams The optional parameters to customize the behavior of the language model.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A lambda function to define the task logic, which accepts the input and returns a task description.
@@ -394,7 +397,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> sub
     name: String? = null,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -407,7 +410,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> sub
 ) {
     setupSubgraphWithTask<Input, Output, OutputTransformed>(
         finishTool = finishTool,
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         defineTask = defineTask
     )
@@ -424,7 +427,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> sub
  * @param name An optional name for the subgraph. Defaults to null if not provided.
  * @param llmModel The language model to be used within the subgraph. Defaults to null if not provided.
  * @param llmParams Optional parameters to customize the behavior of the language model. Defaults to null if not provided.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspend function that defines the task to be executed in the subgraph, based on the provided input.
@@ -438,7 +441,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> sub
     name: String? = null,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -451,7 +454,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> sub
 ) {
     setupSubgraphWithTask<Input, Output, OutputTransformed>(
         finishTool = finishTool,
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         defineTask = defineTask
     )
@@ -469,7 +472,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> sub
  * @param toolSelectionStrategy The strategy used to select tools for the subgraph operations.
  * @param llmModel Optional language model to be used within the subgraph. Defaults to null.
  * @param llmParams Optional parameters for configuring the language model behavior. Defaults to null.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspending lambda function that defines the task for the subgraph, taking the input as a parameter.
@@ -485,7 +488,7 @@ public fun <Input : Any> subgraphWithVerification(
     toolSelectionStrategy: ToolSelectionStrategy,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -511,7 +514,7 @@ public fun <Input : Any> subgraphWithVerification(
         toolSelectionStrategy = toolSelectionStrategy,
         llmModel = llmModel,
         llmParams = llmParams,
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         responseProcessor = responseProcessor,
         defineTask = defineTask
@@ -536,7 +539,7 @@ public fun <Input : Any> subgraphWithVerification(
  * @param toolSelectionStrategy The strategy used to select tools for the subgraph operations.
  * @param llmModel Optional language model to be used within the subgraph. Defaults to null.
  * @param llmParams Optional parameters for configuring the language model behavior. Defaults to null.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspending lambda function that defines the task for the subgraph, taking the input as a parameter.
@@ -549,7 +552,7 @@ public inline fun <reified Input : Any> subgraphWithVerification(
     toolSelectionStrategy: ToolSelectionStrategy,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean = false,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -558,7 +561,7 @@ public inline fun <reified Input : Any> subgraphWithVerification(
     toolSelectionStrategy = toolSelectionStrategy,
     llmModel = llmModel,
     llmParams = llmParams,
-    runMode = runMode,
+    parallelTools = parallelTools,
     assistantResponseRepeatMax = assistantResponseRepeatMax,
     responseProcessor = responseProcessor,
     defineTask = defineTask
@@ -575,7 +578,7 @@ public inline fun <reified Input : Any> subgraphWithVerification(
  * @param tools A list of tools available to the subgraph.
  * @param llmModel Optional language model to be used within the subgraph.
  * @param llmParams Optional parameters to configure the language model's behavior.
- * @param runMode The mode in which tools are executed. Defaults to sequential execution.
+ * @param parallelTools The mode in which tools are executed. Defaults to sequential execution.
  * @param assistantResponseRepeatMax The maximum number of assistant responses allowed before determining that the task cannot be completed.
  * @param responseProcessor An optional processor defining the post-processing of messages returned from the LLM.
  * @param defineTask A suspendable function defining the task that the subgraph will execute,
@@ -589,7 +592,7 @@ public inline fun <reified Input : Any> subgraphWithVerification(
     tools: List<Tool<*, *>>,
     llmModel: LLModel? = null,
     llmParams: LLMParams? = null,
-    runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+    parallelTools: Boolean,
     assistantResponseRepeatMax: Int? = null,
     responseProcessor: ResponseProcessor? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(input: Input) -> String
@@ -597,43 +600,13 @@ public inline fun <reified Input : Any> subgraphWithVerification(
     toolSelectionStrategy = ToolSelectionStrategy.Tools(tools.map { it.descriptor }),
     llmModel = llmModel,
     llmParams = llmParams,
-    runMode = runMode,
+    parallelTools = parallelTools,
     assistantResponseRepeatMax = assistantResponseRepeatMax,
     responseProcessor = responseProcessor,
     defineTask = defineTask
 )
 
 //endregion Subgraph With Verification
-
-/**
- * Configures a subgraph within the AI agent framework, associating it with required tasks and operations.
- *
- * FOR INTERNAL USAGE ONLY!
- *
- * @param finishTool A descriptor for the tool that determines the condition to finalize the subgraph's operation.
- * @param defineTask A suspending lambda that defines the main task of the subgraph, producing a task description based on the input.
- */
-@Suppress("UNCHECKED_CAST")
-@OptIn(InternalAgentToolsApi::class)
-@Deprecated(
-    message = "Use setupSubgraphWithTask API that receive a runMode parameter instead.",
-    replaceWith = ReplaceWith(
-        expression = "setupSubgraphWithTask(finishTool, assistantResponseRepeatMax, runMode, defineTask)"
-    )
-)
-@InternalAgentsApi
-public inline fun <reified Input, reified Output, reified OutputTransformed> AIAgentSubgraphBuilderBase<Input, OutputTransformed>.setupSubgraphWithTask(
-    finishTool: Tool<Output, OutputTransformed>,
-    assistantResponseRepeatMax: Int? = null,
-    noinline defineTask: suspend AIAgentGraphContextBase.(Input) -> String
-) {
-    return setupSubgraphWithTask(
-        finishTool = finishTool,
-        runMode = ToolCalls.SEQUENTIAL,
-        assistantResponseRepeatMax = assistantResponseRepeatMax,
-        defineTask = defineTask,
-    )
-}
 
 /**
  * Configures and sets up a subgraph with task handling, including tool execution operations,
@@ -643,7 +616,7 @@ public inline fun <reified Input, reified Output, reified OutputTransformed> AIA
  * @param Output the type of output data from the finish tool.
  * @param OutputTransformed the transformed type of the output data after processing by the finish tool.
  * @param finishTool the tool used to signify task completion and process task finalization.
- * @param runMode the mode in which tools are executed, e.g., parallel or sequential execution.
+ * @param parallelTools the mode in which tools are executed, e.g., parallel or sequential execution.
  * @param assistantResponseRepeatMax the maximum number of assistant responses allowed before
  *        determining that the task cannot be completed. If not provided, a default is used.
  * @param defineTask a suspend function defining the task description, executed within the
@@ -654,7 +627,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
     finishTool: Tool<Output, OutputTransformed>,
     inputType: TypeToken,
     outputTransformedType: TypeToken,
-    runMode: ToolCalls,
+    parallelTools: Boolean,
     assistantResponseRepeatMax: Int? = null,
     defineTask: suspend AIAgentGraphContextBase.(Input) -> String
 ) {
@@ -697,7 +670,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
     // Helper node to overcome problems of the current api and repeat less code when writing routing conditions
     val nodeDecide by node<Message.Assistant, Message.Assistant> { it }
 
-    val nodeCallLLM by nodeLLMRequest()
+    val nodeCallLLM by nodeLLMRequestWithUserText()
 
     val callToolsHacked by node<List<MessagePart.Tool.Call>, List<ReceivedToolResult>> { toolCalls ->
         val (finishToolCalls, regularToolCalls) = toolCalls.partition { it.tool == finishTool.name }
@@ -708,16 +681,11 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
         }
 
         // Execute regular tools
-        val regularToolsResults = when (runMode) {
-            ToolCalls.PARALLEL -> {
-                environment.executeTools(regularToolCalls)
-            }
-
-            ToolCalls.SEQUENTIAL,
-            ToolCalls.SINGLE_RUN_SEQUENTIAL -> {
-                regularToolCalls.map { toolCall ->
-                    environment.executeTool(toolCall)
-                }
+        val regularToolsResults = if (parallelTools) {
+            environment.executeTools(regularToolCalls)
+        } else {
+            regularToolCalls.map { toolCall ->
+                environment.executeTool(toolCall)
             }
         }
 
@@ -759,17 +727,15 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
             requestLLM()
         }
     }
+    val sendToolsResults by nodeSendToolReceivedResults()
 
     nodeStart then setupTask
-    edge(setupTask forwardTo nodeCallLLM toUserMessage { it })
+    edge(setupTask forwardTo nodeCallLLM)
     edge(nodeCallLLM forwardTo nodeDecide)
 
-    edge(nodeDecide forwardTo callToolsHacked onToolCalls { it.isNotEmpty() } getToolCalls { true })
+    edge(nodeDecide forwardTo callToolsHacked onToolCall { true } getToolCalls { true })
 
-    edge(
-        nodeDecide forwardTo handleAssistantMessage
-            onCondition { response -> response.parts.filterIsInstance<MessagePart.Tool.Call>().isEmpty() }
-    )
+    edge(nodeDecide forwardTo handleAssistantMessage onNoneToolCall { true })
 
     edge(handleAssistantMessage forwardTo nodeDecide)
 
@@ -792,7 +758,6 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
             transformed { toolsResults -> toolsResults.first() }
     )
 
-    val sendToolsResults by nodeSendToolReceivedResults()
     callToolsHacked then sendToolsResults then nodeDecide
 
     edge(finalizeTask forwardTo nodeFinish)
@@ -806,7 +771,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
  * @param Output the type of output data from the finish tool.
  * @param OutputTransformed the transformed type of the output data after processing by the finish tool.
  * @param finishTool the tool used to signify task completion and process task finalization.
- * @param runMode the mode in which tools are executed, e.g., parallel or sequential execution.
+ * @param parallelTools the mode in which tools are executed, e.g., parallel or sequential execution.
  * @param assistantResponseRepeatMax the maximum number of assistant responses allowed before
  *        determining that the task cannot be completed. If not provided, a default is used.
  * @param defineTask a suspend function defining the task description, executed within the
@@ -815,7 +780,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
 @InternalAgentsApi
 public inline fun <reified Input, Output, reified OutputTransformed> AIAgentSubgraphBuilderBase<Input, OutputTransformed>.setupSubgraphWithTask(
     finishTool: Tool<Output, OutputTransformed>,
-    runMode: ToolCalls,
+    parallelTools: Boolean,
     assistantResponseRepeatMax: Int? = null,
     noinline defineTask: suspend AIAgentGraphContextBase.(Input) -> String
 ) {
@@ -823,7 +788,7 @@ public inline fun <reified Input, Output, reified OutputTransformed> AIAgentSubg
         finishTool = finishTool,
         inputType = typeToken<Input>(),
         outputTransformedType = typeToken<OutputTransformed>(),
-        runMode = runMode,
+        parallelTools = parallelTools,
         assistantResponseRepeatMax = assistantResponseRepeatMax,
         defineTask = defineTask,
     )

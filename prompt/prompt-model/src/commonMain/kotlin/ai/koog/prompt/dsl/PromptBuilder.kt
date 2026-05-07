@@ -159,6 +159,22 @@ public class PromptBuilder internal constructor(
         user(RequestMessagePartsBuilder().apply(block).build())
     }
 
+    @JavaAPI
+    public fun toolResult(part: MessagePart.Tool.Result): PromptBuilder = apply {
+        user { toolResult(part) }
+    }
+
+    @JavaAPI
+    @JvmOverloads
+    public fun toolResult(
+        tool: String,
+        output: String,
+        id: String? = null,
+        isError: Boolean = false,
+    ): PromptBuilder = apply {
+        user { toolResult(MessagePart.Tool.Result(id, tool, output, isError)) }
+    }
+
     /**
      * Adds an assistant message to the prompt.
      *
@@ -216,6 +232,72 @@ public class PromptBuilder internal constructor(
         init: ResponseMessagePartsBuilder.() -> Unit
     ): PromptBuilder = apply {
         assistant(ResponseMessagePartsBuilder().apply(init).build(), finishReason, rawResponse, id)
+    }
+
+    @JavaAPI
+    public fun reasoning(part: MessagePart.Reasoning): PromptBuilder = apply {
+        assistant { reasoning(part) }
+    }
+
+    @JavaAPI
+    @JvmOverloads
+    public fun reasoning(
+        content: String,
+        id: String? = null,
+        summary: String? = null,
+        encrypted: String? = null,
+    ): PromptBuilder = apply {
+        assistant {
+            reasoning(
+                MessagePart.Reasoning(
+                    id = id,
+                    content = listOf(content),
+                    summary = summary?.let { listOf(it) },
+                    encrypted = encrypted,
+                )
+            )
+        }
+    }
+
+    @JavaAPI
+    public fun toolCall(part: MessagePart.Tool.Call): PromptBuilder = apply {
+        assistant { toolCall(part) }
+    }
+
+    @JavaAPI
+    @JvmOverloads
+    public fun toolCall(
+        tool: String,
+        args: String,
+        id: String? = null,
+    ): PromptBuilder = apply {
+        assistant {
+            toolCall(
+                MessagePart.Tool.Call(
+                    id = id,
+                    tool = tool,
+                    args = args
+                )
+            )
+        }
+    }
+
+    @JavaAPI
+    @JvmOverloads
+    public fun toolCall(
+        tool: String,
+        args: JsonObject,
+        id: String? = null,
+    ): PromptBuilder = apply {
+        assistant {
+            toolCall(
+                MessagePart.Tool.Call(
+                    id = id,
+                    tool = tool,
+                    args = args
+                )
+            )
+        }
     }
 
     /**

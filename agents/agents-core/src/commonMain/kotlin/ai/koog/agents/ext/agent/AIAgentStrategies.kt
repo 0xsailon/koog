@@ -8,7 +8,7 @@ import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.onToolCalls
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.dsl.extension.onToolResults
 import ai.koog.agents.core.dsl.extension.toText
 import ai.koog.agents.core.dsl.extension.toUserMessage
@@ -38,8 +38,8 @@ public fun chatAgentStrategy(): AIAgentGraphStrategy<String, String> = strategy(
 
     edge(nodeStart forwardTo nodeLLMRequest toUserMessage { it })
 
-    edge(nodeLLMRequest forwardTo nodeExecuteTools onToolCalls { true })
-    edge(nodeExecuteTools forwardTo giveFeedbackToCallTools onToolCalls { false })
+    edge(nodeLLMRequest forwardTo nodeExecuteTools onToolCall { true })
+//    edge(nodeExecuteTools forwardTo giveFeedbackToCallTools onToolCalls { false })
     edge(giveFeedbackToCallTools forwardTo nodeLLMRequest toUserMessage { it })
 
     edge(
@@ -141,10 +141,10 @@ public fun reActStrategy(
     edge(nodeStart forwardTo nodeSetup)
     edge(nodeSetup forwardTo nodeRequestLLMReason toUserMessage { "$it\n$reasoningPrompt" })
     edge(nodeRequestLLMReason forwardTo nodeRequestLLMWithTools)
-    edge(nodeRequestLLMWithTools forwardTo nodeExecuteTools onToolCalls { true })
+    edge(nodeRequestLLMWithTools forwardTo nodeExecuteTools onToolCall { true })
     edge(
         nodeRequestLLMWithTools forwardTo nodeFinish
-            onToolCalls { false }
+            onToolCall { false }
             toText { it }
     )
 }

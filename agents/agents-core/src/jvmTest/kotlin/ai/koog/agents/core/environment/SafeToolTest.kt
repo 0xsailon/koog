@@ -5,7 +5,7 @@ import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.annotations.InternalAgentToolsApi
 import ai.koog.agents.core.tools.reflect.ToolFromCallable
 import ai.koog.agents.core.tools.reflect.asTool
-import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.JSONObject
 import ai.koog.serialization.JSONPrimitive
 import ai.koog.serialization.kotlinx.KotlinxSerializer
@@ -70,12 +70,12 @@ class SafeToolTest {
         private val resultContent: String = "Success content",
     ) : AIAgentEnvironment {
         @OptIn(InternalAgentToolsApi::class)
-        override suspend fun executeTool(toolCall: Message.Tool.Call): ReceivedToolResult {
+        override suspend fun executeTool(toolCall: MessagePart.Tool.Call): ReceivedToolResult {
             return if (shouldSucceed) {
                 ReceivedToolResult(
                     id = toolCall.id,
                     tool = toolCall.tool,
-                    toolArgs = toolCall.contentJson.toKoogJSONObject(),
+                    toolArgs = toolCall.argsJson.toKoogJSONObject(),
                     toolDescription = null,
                     output = resultContent,
                     resultKind = ToolResultKind.Success,
@@ -85,7 +85,7 @@ class SafeToolTest {
                 ReceivedToolResult(
                     id = toolCall.id,
                     tool = toolCall.tool,
-                    toolArgs = toolCall.contentJson.toKoogJSONObject(),
+                    toolArgs = toolCall.argsJson.toKoogJSONObject(),
                     toolDescription = null,
                     output = TEST_ERROR,
                     resultKind = ToolResultKind.Failure(Exception(TEST_ERROR)),
@@ -213,7 +213,7 @@ class SafeToolTest {
     @Test
     fun testWithComplexArgumentsInDirectCallEnvironment() = runTest {
         val directCallEnvironment = object : AIAgentEnvironment {
-            override suspend fun executeTool(toolCall: Message.Tool.Call): ReceivedToolResult {
+            override suspend fun executeTool(toolCall: MessagePart.Tool.Call): ReceivedToolResult {
                 return try {
                     val complexData = ComplexDataClass(
                         id = "direct-call-id",
@@ -228,7 +228,7 @@ class SafeToolTest {
                     ReceivedToolResult(
                         id = toolCall.id,
                         tool = toolCall.tool,
-                        toolArgs = toolCall.contentJson.toKoogJSONObject(),
+                        toolArgs = toolCall.argsJson.toKoogJSONObject(),
                         toolDescription = null,
                         output = "Success: $result",
                         resultKind = ToolResultKind.Success,
@@ -238,7 +238,7 @@ class SafeToolTest {
                     ReceivedToolResult(
                         id = toolCall.id,
                         tool = toolCall.tool,
-                        toolArgs = toolCall.contentJson.toKoogJSONObject(),
+                        toolArgs = toolCall.argsJson.toKoogJSONObject(),
                         toolDescription = null,
                         output = "Error: ${e.message}",
                         resultKind = ToolResultKind.Failure(e),

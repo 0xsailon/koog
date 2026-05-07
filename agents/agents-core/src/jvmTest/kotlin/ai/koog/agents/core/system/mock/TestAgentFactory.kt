@@ -15,6 +15,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.serialization.kotlinx.KotlinxSerializer
@@ -64,11 +65,13 @@ object TestAgentFactory {
      * @return A `Message.Tool.Call` object initialized with the provided tool name, content,
      *         and default metadata including a pre-defined ID as "0".
      */
-    fun toolCallMessage(toolName: String, content: String): Message.Tool.Call =
-        Message.Tool.Call(
-            id = "0",
-            tool = toolName,
-            content = content,
+    fun toolCallMessage(toolName: String, content: String): Message.Assistant =
+        Message.Assistant(
+            part = MessagePart.Tool.Call(
+                id = "0",
+                tool = toolName,
+                args = content,
+            ),
             metaInfo = ResponseMetaInfo.create(testClock)
         )
 
@@ -77,12 +80,14 @@ object TestAgentFactory {
         toolName: String,
         content: String,
         metaInfo: RequestMetaInfo
-    ): Message.Tool.Result =
-        Message.Tool.Result(
-            id = toolCallId,
-            tool = toolName,
-            content = content,
-            metaInfo = metaInfo
+    ): Message.User =
+        Message.User(
+            part = MessagePart.Tool.Result(
+                id = toolCallId,
+                tool = toolName,
+                output = content,
+            ),
+            metaInfo = metaInfo,
         )
 
     /**

@@ -6,7 +6,7 @@ import ai.koog.agents.core.utils.submitRun
 import ai.koog.agents.testing.tools.getMockExecutor
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
-import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import org.junit.jupiter.api.Test
 import java.util.concurrent.Executors
@@ -75,7 +75,7 @@ class LLMWriteSessionJavaApiTest {
                     val response = ctx.llm().writeSession { session ->
                         session.requestLLM(sharedExecutor)
                     }
-                    (response as Message.Assistant).content
+                    response.parts.filterIsInstance<MessagePart.Text>().joinToString("\n") { it.text }
                 }
                 .promptExecutor(executor)
                 .build()

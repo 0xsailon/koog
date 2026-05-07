@@ -84,17 +84,35 @@ public inline infix fun <IncomingOutput, IntermediateOutput, OutgoingInput, reif
 
 /**
  * Creates an edge that filters assistant messages containing tool calls, based on a custom condition.
+ * The default condition onToolCalls { true } will create a conditional edge checking that there at list one tool call
+ * The custom condition onToolCalls { it.tool == "__exit__" } will create a conditional edge checking that there is tool call with the name "__exit__"
  *
- * @param block A function that evaluates whether to accept the assistant message
+ * @param block A function that evaluates whether to accept the tool call
  */
 @EdgeTransformationDslMarker
-public infix fun <IncomingOutput, IntermediateOutput, OutgoingInput> AIAgentEdgeBuilderIntermediate<IncomingOutput, IntermediateOutput, OutgoingInput>.onToolCalls(
-    block: suspend (List<MessagePart.Tool.Call>) -> Boolean
+public infix fun <IncomingOutput, IntermediateOutput, OutgoingInput> AIAgentEdgeBuilderIntermediate<IncomingOutput, IntermediateOutput, OutgoingInput>.onToolCall(
+    block: suspend (MessagePart.Tool.Call) -> Boolean
 ): AIAgentEdgeBuilderIntermediate<IncomingOutput, Message.Assistant, OutgoingInput> {
     return onIsInstance(Message.Assistant::class)
         .onCondition { message ->
-            val toolCalls = message.parts.filterIsInstance<MessagePart.Tool.Call>()
-            block(toolCalls)
+            message.parts.any { it is MessagePart.Tool.Call && block(it) }
+        }
+}
+
+/**
+ * Creates an edge that filters assistant messages containing tool calls, based on a custom condition.
+ * The default condition onNoneToolCalls { true } will create a conditional edge checking that there are no tool calls in the assistant message
+ * The custom condition onNoneToolCalls { it.tool == "__exit__" } will create a conditional edge checking that there are no tool call with the name "__exit__"
+ *
+ * @param block A function that evaluates whether to accept the tool call
+ */
+@EdgeTransformationDslMarker
+public infix fun <IncomingOutput, IntermediateOutput, OutgoingInput> AIAgentEdgeBuilderIntermediate<IncomingOutput, IntermediateOutput, OutgoingInput>.onNoneToolCall(
+    block: suspend (MessagePart.Tool.Call) -> Boolean
+): AIAgentEdgeBuilderIntermediate<IncomingOutput, Message.Assistant, OutgoingInput> {
+    return onIsInstance(Message.Assistant::class)
+        .onCondition { message ->
+            message.parts.none { it is MessagePart.Tool.Call && block(it) }
         }
 }
 

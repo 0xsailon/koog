@@ -1,6 +1,7 @@
 package ai.koog.agents.features.chatmemory.sql
 
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.utils.time.KoogClock
@@ -42,9 +43,9 @@ class H2ChatHistoryProviderTest {
 
         val loaded = p.load("conv-1")
         assertEquals(3, loaded.size)
-        assertEquals("You are a helpful assistant", loaded[0].content)
-        assertEquals("Hello", loaded[1].content)
-        assertEquals("Hi there! How can I help?", loaded[2].content)
+        assertEquals("You are a helpful assistant", (loaded[0].parts[0] as MessagePart.Text).text)
+        assertEquals("Hello", (loaded[1].parts[0] as MessagePart.Text).text)
+        assertEquals("Hi there! How can I help?", (loaded[2].parts[0] as MessagePart.Text).text)
     }
 
     @Test

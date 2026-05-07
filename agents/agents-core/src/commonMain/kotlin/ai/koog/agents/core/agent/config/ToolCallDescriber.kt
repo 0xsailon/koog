@@ -51,7 +51,7 @@ public interface ToolCallDescriber {
          *
          * @param message the tool call message of type [MessagePart.Tool.Call] containing details about the tool invocation,
          * such as tool ID, name, and arguments.
-         * @return a stig containing the serialized JSON representation of the tool call information.
+         * @return a string containing the serialized JSON representation of the tool call information.
          */
         override fun describeToolCall(message: MessagePart.Tool.Call): String {
             return Json.encodeToString(

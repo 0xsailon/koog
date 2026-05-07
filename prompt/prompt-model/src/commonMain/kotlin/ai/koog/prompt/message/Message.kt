@@ -51,12 +51,26 @@ public sealed interface Message {
          */
         @JvmOverloads
         public constructor(
+            part: MessagePart.Text,
+            metaInfo: RequestMetaInfo,
+            id: String? = null,
+        ) : this(
+            listOf(part),
+            metaInfo,
+            id,
+        )
+
+        /**
+         * Text content constructor
+         */
+        @JvmOverloads
+        public constructor(
             content: String,
             metaInfo: RequestMetaInfo,
             cache: CacheControl? = null,
             id: String? = null,
         ) : this(
-            listOf(MessagePart.Text(content, cache)),
+            MessagePart.Text(content, cache),
             metaInfo,
             id,
         )
@@ -71,17 +85,17 @@ public sealed interface Message {
         override val role: Role = Role.User
 
         /**
-         * Text content part constructor
+         * Content part constructor
          */
         @JvmOverloads
         public constructor(
-            content: MessagePart.Text,
+            part: MessagePart.RequestPart,
             metaInfo: RequestMetaInfo,
             id: String? = null,
         ) : this(
-            listOf(content),
+            listOf(part),
             metaInfo,
-            id,
+            id
         )
 
         /**
@@ -112,17 +126,17 @@ public sealed interface Message {
         override val role: Role = Role.Assistant
 
         /**
-         * Text content part constructor
+         * Content part constructor
          */
         @JvmOverloads
         public constructor(
-            content: MessagePart.Text,
+            part: MessagePart.ResponsePart,
             metaInfo: ResponseMetaInfo,
             finishReason: String? = null,
             rawResponse: JsonObject? = null,
             id: String? = null,
         ) : this(
-            listOf(content),
+            listOf(part),
             metaInfo,
             finishReason,
             rawResponse,
