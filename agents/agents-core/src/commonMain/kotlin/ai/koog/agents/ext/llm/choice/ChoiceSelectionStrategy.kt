@@ -1,6 +1,7 @@
 package ai.koog.agents.ext.llm.choice
 
 import ai.koog.prompt.dsl.Prompt
+import ai.koog.prompt.message.LLMChoice
 import ai.koog.prompt.message.Message
 
 /**
@@ -9,22 +10,22 @@ import ai.koog.prompt.message.Message
  */
 public interface ChoiceSelectionStrategy {
     /**
-     * Selects one choice from a list of available `Message.Response` options based on a given prompt.
+     * Selects one choice from a list of available `Message.Response` in `LLMChoice` options based on a given prompt.
      *
      * @param prompt The `Prompt` containing the context or query for which a choice should be selected.
-     * @param choices A list of `Message.Response` options from which one will be chosen.
+     * @param choices A `LLMChoice` options from which one will be chosen.
      * @return The selected `Message.Response` from the provided list based on the implemented strategy.
      */
-    public suspend fun choose(prompt: Prompt, choices: List<Message.Assistant>): Message.Assistant
+    public suspend fun choose(prompt: Prompt, choices: LLMChoice): Message.Assistant
 
     /**
      * Represents the default implementation of the `ChoiceSelectionStrategy` interface.
      *
-     * This implementation selects the first available choice from the provided list of `Message.Response` options
+     * This implementation selects the first available choice from the provided `LLMChoice` options
      * in response to the given `Prompt`. It is intended to serve as a simple, deterministic strategy for
      * use cases where no specific selection logic is required.
      */
     public object Default : ChoiceSelectionStrategy {
-        override suspend fun choose(prompt: Prompt, choices: List<Message.Assistant>): Message.Assistant = choices.first()
+        override suspend fun choose(prompt: Prompt, choices: LLMChoice): Message.Assistant = choices.first()
     }
 }

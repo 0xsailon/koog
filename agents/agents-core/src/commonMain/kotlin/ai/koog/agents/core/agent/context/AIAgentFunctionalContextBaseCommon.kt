@@ -1,6 +1,5 @@
 package ai.koog.agents.core.agent.context
 
-import ai.koog.agents.core.agent.ToolCalls
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStateManager
 import ai.koog.agents.core.agent.entity.AIAgentStorage
@@ -21,15 +20,20 @@ import ai.koog.agents.ext.agent.CriticResultFromLLM
 import ai.koog.agents.ext.agent.FinishTool
 import ai.koog.agents.ext.agent.SubgraphWithTaskUtils
 import ai.koog.agents.ext.agent.executeFinishTool
+import ai.koog.prompt.dsl.ModerationResult
+import ai.koog.prompt.dsl.PromptBuilder
+import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.model.StructureFixingParser
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.markdown.markdown
+import ai.koog.prompt.message.LLMChoice
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.params.LLMParams
 import ai.koog.prompt.processor.ResponseProcessor
 import ai.koog.prompt.streaming.StreamFrame
 import ai.koog.prompt.structure.StructureDefinition
+import ai.koog.prompt.structure.StructuredRequestConfig
 import ai.koog.prompt.structure.StructuredResponse
 import ai.koog.serialization.kotlinx.KotlinxSerializer
 import ai.koog.serialization.typeToken
@@ -100,6 +104,29 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     }
 
     /**
+     * Appends messages to the current LLM prompt without making an LLM request.
+     * Corresponds to [nodeAppendPrompt].
+     *
+     * @param body Lambda to modify the prompt using [PromptBuilder].
+     */
+    public suspend fun appendPrompt(body: PromptBuilder.() -> Unit) {
+        llm.writeSession { appendPrompt { body() } }
+    }
+
+    /**
+     * Sends a string message to the LLM without tool calls.
+     * Corresponds to [nodeLLMRequestWithoutToolsWithUserText].
+     *
+     * @param message The content of the message to be sent to the LLM.
+     */
+    public suspend fun requestLLMWithoutTools(message: String): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt { user(message) }
+            requestLLMWithoutTools()
+        }
+    }
+
+    /**
      * Executes the provided action if the given response is of type [Message.Assistant].
      *
      * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
@@ -124,23 +151,6 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     ) {
         action(response.parts.filterIsInstance<MessagePart.Text>())
     }
-
-    /**
-     * Attempts to cast a [Message.Assistant] instance to a [Message.Assistant] type.
-     *
-     * @return The [Message.Assistant] instance if the cast is successful, or `null` if the cast fails.
-     */
-    public fun Message.Assistant.asAssistantMessageOrNull(): Message.Assistant? = this as? Message.Assistant
-
-    /**
-     * Casts the current instance of a [Message.Assistant] to a [Message.Assistant].
-     * This function should only be used when it is guaranteed that the instance
-     * is of type [Message.Assistant], as it will throw an exception if the type
-     * does not match.
-     *
-     * @return The current instance cast to [Message.Assistant].
-     */
-    public fun Message.Assistant.asAssistantMessage(): Message.Assistant = this as Message.Assistant
 
     /**
      * Invokes the provided action when multiple tool call messages are found within a given list of response messages.
@@ -258,7 +268,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      */
     public suspend fun requestLLM(message: String): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 user(message)
             }
 
@@ -275,7 +285,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      */
     public suspend fun requestLLMOnlyCallingTools(message: String): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 user(message)
             }
 
@@ -296,7 +306,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         tool: ToolDescriptor
     ): Message.Assistant {
         return llm.writeSession {
-            updatePrompt {
+            appendPrompt {
                 user(message)
             }
 
@@ -326,6 +336,171 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     }
 
     /**
+     * Sends a [Message.User] to the LLM and returns the response.
+     * Corresponds to [nodeLLMRequest].
+     */
+    public suspend fun requestLLM(message: Message.User): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLM()
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM, restricting it to only calling tools.
+     * Corresponds to [nodeLLMRequestOnlyCallingTools].
+     */
+    public suspend fun requestLLMOnlyCallingTools(message: Message.User): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMOnlyCallingTools()
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM without allowing tool calls.
+     * Corresponds to [nodeLLMRequestWithoutTools].
+     */
+    public suspend fun requestLLMWithoutTools(message: Message.User): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMWithoutTools()
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM and forces it to use a specific tool.
+     * Corresponds to [nodeLLMRequestForceOneTool].
+     */
+    public suspend fun requestLLMForceOneTool(message: Message.User, tool: ToolDescriptor): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMForceOneTool(tool)
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM and forces it to use a specific tool.
+     * Corresponds to [nodeLLMRequestForceOneTool].
+     */
+    public suspend fun requestLLMForceOneTool(message: Message.User, tool: Tool<*, *>): Message.Assistant {
+        return requestLLMForceOneTool(message, tool.descriptor)
+    }
+
+    /**
+     * Sends a string message to the LLM and returns multiple response choices.
+     * Corresponds to [nodeLLMRequestMultipleChoicesWithUserText].
+     */
+    public suspend fun requestLLMMultipleChoices(message: String): LLMChoice {
+        return llm.writeSession {
+            appendPrompt { user(message) }
+            requestLLMMultipleChoices()
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM and returns multiple response choices.
+     * Corresponds to [nodeLLMRequestMultipleChoices].
+     */
+    public suspend fun requestLLMMultipleChoices(message: Message.User): LLMChoice {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMMultipleChoices()
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM and streams the response.
+     * Corresponds to [nodeLLMRequestStreaming].
+     */
+    public suspend fun requestLLMStreaming(
+        message: Message.User,
+        structureDefinition: StructureDefinition? = null
+    ): Flow<StreamFrame> {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMStreaming(structureDefinition)
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM and returns a structured response.
+     * Corresponds to [nodeLLMRequestStructured].
+     */
+    public suspend inline fun <reified T> requestLLMStructured(
+        message: Message.User,
+        examples: List<T> = emptyList(),
+        fixingParser: StructureFixingParser? = null
+    ): Result<StructuredResponse<T>> = requestLLMStructured(message, serializer<T>(), examples, fixingParser)
+
+    @PublishedApi
+    internal suspend fun <T> requestLLMStructured(
+        message: Message.User,
+        serializer: KSerializer<T>,
+        examples: List<T> = emptyList(),
+        fixingParser: StructureFixingParser? = null
+    ): Result<StructuredResponse<T>> {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMStructured(serializer, examples, fixingParser)
+        }
+    }
+
+    /**
+     * Sends a string message to the LLM and returns a structured response using a [StructuredRequestConfig].
+     * Corresponds to [nodeLLMRequestStructuredWithUserText].
+     */
+    public suspend fun <T> requestLLMStructured(
+        message: String,
+        config: StructuredRequestConfig<T>,
+        fixingParser: StructureFixingParser? = null
+    ): Result<StructuredResponse<T>> {
+        return llm.writeSession {
+            appendPrompt { user(message) }
+            requestLLMStructured(config, fixingParser)
+        }
+    }
+
+    /**
+     * Sends a [Message.User] to the LLM and returns a structured response using a [StructuredRequestConfig].
+     * Corresponds to [nodeLLMRequestStructured].
+     */
+    public suspend fun <T> requestLLMStructured(
+        message: Message.User,
+        config: StructuredRequestConfig<T>,
+        fixingParser: StructureFixingParser? = null
+    ): Result<StructuredResponse<T>> {
+        return llm.writeSession {
+            appendPrompt { message(message) }
+            requestLLMStructured(config, fixingParser)
+        }
+    }
+
+    /**
+     * Moderates a message using the LLM.
+     * Corresponds to [nodeLLMModerateMessage].
+     *
+     * @param message The message to moderate.
+     * @param moderatingModel Optional model to use for moderation instead of the current one.
+     * @param includeCurrentPrompt Whether to include the current conversation prompt in the moderation context.
+     */
+    @OptIn(DetachedPromptExecutorAPI::class)
+    public suspend fun moderateMessage(
+        message: Message,
+        moderatingModel: LLModel? = null,
+        includeCurrentPrompt: Boolean = false
+    ): ModerationResult {
+        val currentPrompt = llm.readSession { prompt }
+        val currentModel = llm.readSession { model }
+        val moderationPrompt = if (includeCurrentPrompt) {
+            prompt(currentPrompt) { message(message) }
+        } else {
+            prompt("single-message-moderation") { message(message) }
+        }
+        return llm.promptExecutor.moderate(moderationPrompt, moderatingModel ?: currentModel)
+    }
+
+    /**
      * Executes a tool call and returns the result.
      *
      * @param toolCall The tool call to execute.
@@ -343,7 +518,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param parallelTools Specifies whether tools should be executed in parallel.
      * @return A list of results from the executed tool calls.
      */
-    public suspend fun executeMultipleTools(
+    public suspend fun executeTools(
         toolCalls: List<MessagePart.Tool.Call>,
         parallelTools: Boolean = false
     ): List<ReceivedToolResult> {
@@ -378,7 +553,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param results The list of tool results to add to the prompt.
      * @return A list of LLM responses.
      */
-    public suspend fun sendMultipleToolResults(
+    public suspend fun sendMultipToolResults(
         results: List<ReceivedToolResult>
     ): Message.Assistant {
         return llm.writeSession {
@@ -389,6 +564,82 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             }
 
             requestLLM()
+        }
+    }
+
+    /**
+     * Executes all tool calls from a [Message.Assistant] and returns their results.
+     * Corresponds to [nodeExecuteToolsAndGetReceivedResults].
+     *
+     * @param message The assistant message containing tool calls to execute.
+     * @param parallelTools Whether to execute tools in parallel.
+     */
+    public suspend fun executeTools(
+        message: Message.Assistant,
+        parallelTools: Boolean = false
+    ): List<ReceivedToolResult> {
+        val toolCalls = message.parts.filterIsInstance<MessagePart.Tool.Call>()
+        return executeTools(toolCalls, parallelTools)
+    }
+
+    /**
+     * Sends tool results to the LLM, restricting it to only calling tools.
+     * Corresponds to [nodeSendToolReceivedResultsOnlyCallingTools].
+     */
+    public suspend fun sendToolResultsOnlyCallingTools(
+        results: List<ReceivedToolResult>
+    ): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt {
+                user { results.forEach { toolResult(it.toMessagePart()) } }
+            }
+            requestLLMOnlyCallingTools()
+        }
+    }
+
+    /**
+     * Sends tool results to the LLM without allowing further tool calls.
+     * Corresponds to [nodeSendToolReceivedResultsWithoutTools].
+     */
+    public suspend fun sendToolResultsWithoutTools(
+        results: List<ReceivedToolResult>
+    ): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt {
+                user { results.forEach { toolResult(it.toMessagePart()) } }
+            }
+            requestLLMWithoutTools()
+        }
+    }
+
+    /**
+     * Sends tool results to the LLM and forces it to use a specific tool.
+     * Corresponds to [nodeSendToolReceivedResultsForceOneTool].
+     */
+    public suspend fun sendToolResultsForceOneTool(
+        results: List<ReceivedToolResult>,
+        tool: ToolDescriptor
+    ): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt {
+                user { results.forEach { toolResult(it.toMessagePart()) } }
+            }
+            requestLLMForceOneTool(tool)
+        }
+    }
+
+    /**
+     * Sends tool results to the LLM and returns multiple response choices.
+     * Corresponds to [nodeSendToolReceivedResultsMultipleChoices].
+     */
+    public suspend fun sendToolResultsMultipleChoices(
+        results: List<ReceivedToolResult>
+    ): LLMChoice {
+        return llm.writeSession {
+            appendPrompt {
+                user { results.forEach { toolResult(it.toMessagePart()) } }
+            }
+            requestLLMMultipleChoices()
         }
     }
 
@@ -456,7 +707,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param tools An optional list of tools that can be used during the execution of the subtask.
      * @param llmModel An optional parameter specifying the LLM model to be used for the subtask.
      * @param llmParams Optional configuration parameters for the LLM, such as temperature and token limits.
-     * @param runMode The mode in which tools should be executed, either sequentially or in parallel.
+     * @param parallelTools The mode in which tools should be executed, either sequentially or in parallel.
      * @param assistantResponseRepeatMax An optional parameter specifying the maximum number of retries for getting valid
      * assistant responses.
      * @return A [CriticResult] object containing the verification status, feedback, and the original input for the subtask.
@@ -466,7 +717,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         tools: List<Tool<*, *>>? = null,
         llmModel: LLModel? = null,
         llmParams: LLMParams? = null,
-        runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+        parallelTools: Boolean = false,
         assistantResponseRepeatMax: Int? = null,
         responseProcessor: ResponseProcessor? = null
     ): CriticResult<String> {
@@ -481,7 +732,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             tools = tools,
             llmModel = llmModel,
             llmParams = llmParams,
-            runMode = runMode,
+            parallelTools = parallelTools,
             assistantResponseRepeatMax = assistantResponseRepeatMax,
             responseProcessor = responseProcessor
         )
@@ -502,7 +753,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param tools A list of tools available for use within the subtask.
      * @param llmModel The optional large language model to be used during the subtask, if different from the default one.
      * @param llmParams The configuration parameters for the large language model, such as temperature.
-     * @param runMode The mode in which tools should be executed, either sequentially or in parallel.
+     * @param parallelTools The mode in which tools should be executed, either sequentially or in parallel.
      * @param assistantResponseRepeatMax The maximum number of times the assistant response can repeat.
      * @return The result of the subtask execution.
      */
@@ -512,7 +763,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         tools: List<Tool<*, *>>? = null,
         llmModel: LLModel? = null,
         llmParams: LLMParams? = null,
-        runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+        parallelTools: Boolean = false,
         assistantResponseRepeatMax: Int? = null,
         responseProcessor: ResponseProcessor? = null
     ): Output {
@@ -524,7 +775,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             finishTool,
             llmModel,
             llmParams,
-            runMode,
+            parallelTools,
             assistantResponseRepeatMax,
             responseProcessor
 
@@ -540,7 +791,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param finishTool A mandatory tool that determines the final result of the subtask by producing and transforming output.
      * @param llmModel An optional specific LLM to use for executing the subtask.
      * @param llmParams Optional parameters for configuring the behavior of the LLM during subtask execution.
-     * @param runMode The mode in which tools should be executed, either sequentially or in parallel.
+     * @param parallelTools The mode in which tools should be executed, either sequentially or in parallel.
      * @param assistantResponseRepeatMax The maximum number of feedback attempts allowed from the language model if the
      * subtask is not completed.
      * @return The transformed final result of executing the finishing tool to complete the subtask.
@@ -551,7 +802,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         finishTool: Tool<*, OutputTransformed>,
         llmModel: LLModel? = null,
         llmParams: LLMParams? = null,
-        runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+        parallelTools: Boolean = false,
         assistantResponseRepeatMax: Int? = null,
         responseProcessor: ResponseProcessor? = null
     ): OutputTransformed {
@@ -585,20 +836,12 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             setToolChoiceRequired()
         }
 
-        val result = when (runMode) {
-            ToolCalls.SINGLE_RUN_SEQUENTIAL -> subtaskWithSingleToolMode(
-                taskDescription,
-                finishTool,
-                maxAssistantResponses
-            )
-
-            else -> subtaskWithMultiToolMode(
-                taskDescription,
-                finishTool,
-                runMode,
-                maxAssistantResponses
-            )
-        }
+        val result = subtaskWithMultiToolMode(
+            taskDescription,
+            finishTool,
+            parallelTools,
+            maxAssistantResponses
+        )
 
         // rollback
         llm.writeSession {
@@ -619,7 +862,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param tools A list of tools available for use within the subtask.
      * @param llmModel The optional large language model to be used during the subtask, if different from the default one.
      * @param llmParams The configuration parameters for the large language model, such as temperature.
-     * @param runMode The mode in which tools should be executed, either sequentially or in parallel.
+     * @param parallelTools The mode in which tools should be executed, either sequentially or in parallel.
      * @param assistantResponseRepeatMax The maximum number of times the assistant response can repeat.
      * @return The result of the subtask execution.
      */
@@ -629,7 +872,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         tools: List<Tool<*, *>>? = null,
         llmModel: LLModel? = null,
         llmParams: LLMParams? = null,
-        runMode: ToolCalls = ToolCalls.SEQUENTIAL,
+        parallelTools: Boolean = false,
         assistantResponseRepeatMax: Int? = null,
         responseProcessor: ResponseProcessor? = null
     ): Output {
@@ -639,7 +882,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             tools = tools,
             llmModel = llmModel,
             llmParams = llmParams,
-            runMode = runMode,
+            parallelTools = parallelTools,
             assistantResponseRepeatMax = assistantResponseRepeatMax,
             responseProcessor = responseProcessor,
         )
@@ -721,7 +964,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     internal suspend fun <Output, OutputTransformed> subtaskWithMultiToolMode(
         task: String,
         finishTool: Tool<Output, OutputTransformed>,
-        runMode: ToolCalls,
+        parallelTools: Boolean,
         maxAssistantResponses: Int
     ): OutputTransformed {
         var feedbacksCount = 0

@@ -365,7 +365,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         parallelTools: Boolean,
         executorService: ExecutorService? = null
     ): List<ReceivedToolResult> = config.runOnStrategyDispatcher(executorService) {
-        executeMultipleTools(toolCalls, parallelTools)
+        executeTools(toolCalls, parallelTools)
     }
 
     /**
@@ -397,7 +397,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         results: List<ReceivedToolResult>,
         executorService: ExecutorService? = null
     ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
-        sendMultipleToolResults(results)
+        sendMultipToolResults(results)
     }
 
     /**

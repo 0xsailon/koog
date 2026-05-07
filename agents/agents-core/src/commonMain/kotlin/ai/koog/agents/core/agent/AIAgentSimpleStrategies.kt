@@ -27,7 +27,7 @@ import kotlin.jvm.JvmOverloads
  * @return An instance of AIAgentStrategy configured according to the specified run mode.
  */
 @JvmOverloads
-public fun singleRunStrategy(parallelTools: Boolean): AIAgentGraphStrategy<String, String> = strategy<String, String>("single_run") {
+public fun singleRunStrategy(parallelTools: Boolean = false): AIAgentGraphStrategy<String, String> = strategy<String, String>("single_run") {
     val nodeLLMRequest by nodeLLMRequest()
     val nodeExecuteTool by nodeExecuteTools(parallel = parallelTools)
 

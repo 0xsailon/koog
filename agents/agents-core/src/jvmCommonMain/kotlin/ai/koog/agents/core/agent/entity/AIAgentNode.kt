@@ -8,6 +8,7 @@ import ai.koog.agents.core.annotation.InternalAgentsApi
 import ai.koog.agents.core.dsl.builder.AIAgentBuilderDslMarker
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMModerateMessage
+import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestForceOneTool
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestOnlyCallingTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStreaming
@@ -34,7 +35,6 @@ import kotlinx.coroutines.jdk9.asFlow
 import kotlinx.coroutines.jdk9.asPublisher
 import java.util.concurrent.Flow.Publisher
 import kotlin.random.Random
-import ai.koog.agents.core.dsl.extension.nodeLLMRequest as extensionNodeLLMRequest
 
 /**
  * Represents a simple implementation of an AI agent node, encapsulating a specific execution
@@ -84,7 +84,7 @@ public actual open class AIAgentNode<TInput, TOutput> internal actual constructo
         public fun llmRequest(
             name: String? = null,
         ): AIAgentNodeBase<Message.User, Message.Assistant> {
-            val node by extensionNodeLLMRequest(name)
+            val node by nodeLLMRequest(name)
             return node
         }
 
