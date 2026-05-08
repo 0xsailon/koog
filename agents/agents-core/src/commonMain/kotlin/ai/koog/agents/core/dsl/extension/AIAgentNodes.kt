@@ -572,6 +572,15 @@ public fun nodeSendToolReceivedResultsMultipleChoices(
         }
     }
 
+@AIAgentBuilderDslMarker
+public fun nodeExecuteSingleTool(
+    name: String? = null,
+    parallel: Boolean = false,
+): AIAgentNodeDelegate<MessagePart.Tool.Call, ReceivedToolResult> =
+    node(name) {
+        environment.executeTool(it)
+    }
+
 /**
  * A node that calls a specific tool directly using the provided arguments.
  *

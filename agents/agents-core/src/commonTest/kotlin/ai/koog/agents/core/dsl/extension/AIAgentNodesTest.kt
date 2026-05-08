@@ -2,6 +2,7 @@ package ai.koog.agents.core.dsl.extension
 
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.features.eventHandler.feature.EventHandler
@@ -169,15 +170,15 @@ class AIAgentNodesTest {
         var capturedPrompt: Prompt? = null
 
         val manualStrategy = strategy<String, String>("test-manual") {
-//            val setStructuredOutput by nodeSetStructuredOutput<String, TestOutput>(config = manualConfig)
-//            val checkPrompt by node<String, String> { input ->
-//                capturedPrompt = llm.prompt
-//                input
-//            }
-//
-//            edge(nodeStart forwardTo setStructuredOutput)
-//            edge(setStructuredOutput forwardTo checkPrompt)
-//            edge(checkPrompt forwardTo nodeFinish)
+            val setStructuredOutput by nodeSetStructuredOutput<String, TestOutput>(config = manualConfig)
+            val checkPrompt by node<String, String> { input ->
+                capturedPrompt = llm.prompt
+                input
+            }
+
+            edge(nodeStart forwardTo setStructuredOutput)
+            edge(setStructuredOutput forwardTo checkPrompt)
+            edge(checkPrompt forwardTo nodeFinish)
         }
 
         val testExecutor = getMockExecutor(serializer) {
@@ -214,15 +215,15 @@ class AIAgentNodesTest {
         )
 
         val nativeStrategy = strategy<String, String>("test-native") {
-//            val setStructuredOutput by nodeSetStructuredOutput<String, TestOutput>(config = nativeConfig)
-//            val checkPrompt by node<String, String> { input ->
-//                capturedPrompt = llm.prompt
-//                input
-//            }
-//
-//            edge(nodeStart forwardTo setStructuredOutput)
-//            edge(setStructuredOutput forwardTo checkPrompt)
-//            edge(checkPrompt forwardTo nodeFinish)
+            val setStructuredOutput by nodeSetStructuredOutput<String, TestOutput>(config = nativeConfig)
+            val checkPrompt by node<String, String> { input ->
+                capturedPrompt = llm.prompt
+                input
+            }
+
+            edge(nodeStart forwardTo setStructuredOutput)
+            edge(setStructuredOutput forwardTo checkPrompt)
+            edge(checkPrompt forwardTo nodeFinish)
         }
 
         val nativeAgent = AIAgent(

@@ -4,6 +4,10 @@ import ai.koog.agents.core.agent.GraphAIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStorageKey
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.ReceivedToolResults
+import ai.koog.agents.core.dsl.extension.ToolCalls
+import ai.koog.agents.core.dsl.extension.nodeExecuteSingleTool
+import ai.koog.agents.core.dsl.extension.nodeExecuteToolsAndGetResults
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.feature.config.FeatureConfig
 import ai.koog.agents.core.feature.handler.tool.ToolCallFailedContext
@@ -74,10 +78,10 @@ class ToolCallFailureEventsTest {
     fun testInvalidJsonTriggersToolValidationFailedEvent() = runTest {
         var toolValidationFailed: ToolValidationFailedContext? = null
 
-        val strategy = strategy<MessagePart.Tool.Call, ReceivedToolResult>("tool_failure_strategy") {
-//            val executeTool by nodeExecuteTools()
-//            edge(nodeStart forwardTo executeTool)
-//            edge(executeTool forwardTo nodeFinish)
+        val strategy = strategy<ToolCalls, ReceivedToolResults>("tool_failure_strategy") {
+            val executeTool by nodeExecuteToolsAndGetResults()
+            edge(nodeStart forwardTo executeTool)
+            edge(executeTool forwardTo nodeFinish)
         }
 
         val agent = GraphAIAgent(
@@ -100,7 +104,7 @@ class ToolCallFailureEventsTest {
             args = "not-json",
         )
 
-        agent.run(toolCall)
+        agent.run(ToolCalls(listOf(toolCall)))
         val capturedFailure = assertNotNull(toolValidationFailed)
         assertEquals("required_args", capturedFailure.toolName)
         assertTrue(capturedFailure.message.contains("Failed to parse tool arguments"))
@@ -111,9 +115,9 @@ class ToolCallFailureEventsTest {
         var toolCallFailed: ToolCallFailedContext? = null
 
         val strategy = strategy<MessagePart.Tool.Call, ReceivedToolResult>("tool_failure_strategy") {
-//            val executeTool by nodeExecuteTools()
-//            edge(nodeStart forwardTo executeTool)
-//            edge(executeTool forwardTo nodeFinish)
+            val executeTool by nodeExecuteSingleTool()
+            edge(nodeStart forwardTo executeTool)
+            edge(executeTool forwardTo nodeFinish)
         }
 
         val agent = GraphAIAgent(
@@ -146,9 +150,9 @@ class ToolCallFailureEventsTest {
         var toolCallFailed: ToolCallFailedContext? = null
 
         val strategy = strategy<MessagePart.Tool.Call, ReceivedToolResult>("tool_failure_strategy") {
-//            val executeTool by nodeExecuteTools()
-//            edge(nodeStart forwardTo executeTool)
-//            edge(executeTool forwardTo nodeFinish)
+            val executeTool by nodeExecuteSingleTool()
+            edge(nodeStart forwardTo executeTool)
+            edge(executeTool forwardTo nodeFinish)
         }
 
         val agent = GraphAIAgent(

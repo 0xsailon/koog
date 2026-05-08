@@ -195,8 +195,8 @@ class AIAgentNodesHistoryCompressionTest {
         )
 
         // Verify that the final messages include the TLDRs
-        val tldrMessages = testExecutor.messages!!.last().parts.filter {
-            it is MessagePart.Text && it.text.startsWith("TLDR")
+        val tldrMessages = testExecutor.messages.flatMap { it.parts }.filter { part ->
+            part is MessagePart.Text && part.text.startsWith("TLDR")
         }
 
         assertEquals(8, testExecutor.tldrCount)
