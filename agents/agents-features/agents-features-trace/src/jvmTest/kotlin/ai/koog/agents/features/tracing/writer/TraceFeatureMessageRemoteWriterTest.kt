@@ -4,11 +4,11 @@ import ai.koog.agents.core.agent.entity.AIAgentSubgraphBase.Companion.FINISH_NOD
 import ai.koog.agents.core.agent.entity.AIAgentSubgraphBase.Companion.START_NODE_PREFIX
 import ai.koog.agents.core.annotation.InternalAgentsApi
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.getToolCall
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.feature.message.FeatureMessage
 import ai.koog.agents.core.feature.model.events.AgentClosingEvent
@@ -237,11 +237,11 @@ class TraceFeatureMessageRemoteWriterTest {
                     val nodeSendToolResult by nodeLLMSendToolResult("test-node-llm-send-tool-result")
 
                     edge(nodeStart forwardTo nodeSendInput)
-                    edge(nodeSendInput forwardTo nodeExecuteTool getToolCall { true })
+                    edge(nodeSendInput forwardTo nodeExecuteTool onToolCall { true })
                     edge(nodeSendInput forwardTo nodeFinish onAssistantMessage { true })
                     edge(nodeExecuteTool forwardTo nodeSendToolResult)
                     edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-                    edge(nodeSendToolResult forwardTo nodeExecuteTool getToolCall { true })
+                    edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
                 }
 
                 val mockExecutor = getMockExecutor(serializer, clock = testClock) {
@@ -808,11 +808,11 @@ class TraceFeatureMessageRemoteWriterTest {
                     val nodeSendToolResult by nodeLLMSendToolResult(nodeSendToolResultName)
 
                     edge(nodeStart forwardTo nodeSendInput)
-                    edge(nodeSendInput forwardTo nodeExecuteTool getToolCall { true })
+                    edge(nodeSendInput forwardTo nodeExecuteTool onToolCall { true })
                     edge(nodeSendInput forwardTo nodeFinish onAssistantMessage { true })
                     edge(nodeExecuteTool forwardTo nodeSendToolResult)
                     edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-                    edge(nodeSendToolResult forwardTo nodeExecuteTool getToolCall { true })
+                    edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
                 }
 
                 val mockExecutor = getMockExecutor(serializer, clock = testClock) {

@@ -8,11 +8,11 @@ import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
 import ai.koog.agents.core.agent.functionalStrategy
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.getToolCall
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.features.opentelemetry.OpenTelemetryTestAPI.Parameter.DEFAULT_AGENT_ID
@@ -117,11 +117,11 @@ internal object OpenTelemetryTestAPI {
             val nodeSendToolResult by nodeLLMSendToolResult("test-node-llm-send-tool-result")
 
             edge(nodeStart forwardTo nodeCallLLM)
-            edge(nodeCallLLM forwardTo nodeExecuteTool getToolCall { true })
+            edge(nodeCallLLM forwardTo nodeExecuteTool onToolCall { true })
             edge(nodeCallLLM forwardTo nodeFinish onAssistantMessage { true })
             edge(nodeExecuteTool forwardTo nodeSendToolResult)
             edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-            edge(nodeSendToolResult forwardTo nodeExecuteTool getToolCall { true })
+            edge(nodeSendToolResult forwardTo nodeExecuteTool onToolCall { true })
         }
         internal val singleToolCallFunctionalStrategy =
             functionalStrategy<String, String>(Parameter.DEFAULT_STRATEGY_NAME) { input ->

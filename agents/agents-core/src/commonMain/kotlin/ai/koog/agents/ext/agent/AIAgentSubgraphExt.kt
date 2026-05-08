@@ -11,11 +11,12 @@ import ai.koog.agents.core.dsl.builder.AIAgentSubgraphBuilderBase
 import ai.koog.agents.core.dsl.builder.AIAgentSubgraphDelegate
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.subgraph
-import ai.koog.agents.core.dsl.extension.getToolCalls
+import ai.koog.agents.core.dsl.extension.ReceivedToolResults
+import ai.koog.agents.core.dsl.extension.ToolCalls
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithUserText
 import ai.koog.agents.core.dsl.extension.nodeSendToolReceivedResults
-import ai.koog.agents.core.dsl.extension.onNoneToolCall
-import ai.koog.agents.core.dsl.extension.onToolCall
+import ai.koog.agents.core.dsl.extension.onTextParts
+import ai.koog.agents.core.dsl.extension.onToolCalls
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
 import ai.koog.agents.core.environment.toSafeResult
@@ -109,8 +110,7 @@ public object SubgraphWithTaskUtils {
  */
 @OptIn(InternalAgentToolsApi::class, InternalKoogSerializationApi::class)
 public class FinishTool<Output>
-@InternalAgentsApi
-internal constructor(
+@InternalAgentsApi internal constructor(
     private val outputType: TypeToken,
     private val customSerializer: JSONSerializer? = null,
 ) : Tool<Output, Output>(
@@ -172,11 +172,9 @@ internal constructor(
         ).jsonObject.toKoogJSONObject()
     }
 
-    override fun decodeArgs(rawArgs: JSONObject, serializer: JSONSerializer): Output =
-        decodeOutput(rawArgs, serializer)
+    override fun decodeArgs(rawArgs: JSONObject, serializer: JSONSerializer): Output = decodeOutput(rawArgs, serializer)
 
-    override fun encodeArgs(args: Output, serializer: JSONSerializer): JSONObject =
-        encodeOutput(args, serializer)
+    override fun encodeArgs(args: Output, serializer: JSONSerializer): JSONObject = encodeOutput(args, serializer)
 
     override fun decodeResult(rawResult: JSONElement, serializer: JSONSerializer): Output =
         decodeOutput(rawResult as JSONObject, serializer)
@@ -655,16 +653,29 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
         defineTask(input)
     }
 
-    val finalizeTask by node<ReceivedToolResult, OutputTransformed>(
+    val finalizeTask by node<ReceivedToolResults, OutputTransformed>(
         inputType = typeToken<ReceivedToolResult>(),
         outputType = outputTransformedType
-    ) { toolResult ->
+    ) {
         llm.writeSession {
+            // Append tool calls
+            appendPrompt {
+                user {
+                    it.toolResults.forEach { toolResult ->
+                        toolResult(toolResult.toMessagePart())
+                    }
+                }
+            }
             // Restore original tools
             tools = storage.get(originalToolsKey)!!
         }
 
-        toolResult.toSafeResult(finishTool, config.serializer).asSuccessful().result
+        val finishToolResult = it.toolResults.first { toolResult ->
+            toolResult.tool == finishTool.name &&
+                toolResult.resultKind is ToolResultKind.Success
+        }
+
+        finishToolResult.toSafeResult(finishTool, config.serializer).asSuccessful().result
     }
 
     // Helper node to overcome problems of the current api and repeat less code when writing routing conditions
@@ -672,13 +683,8 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
 
     val nodeCallLLM by nodeLLMRequestWithUserText()
 
-    val callToolsHacked by node<List<MessagePart.Tool.Call>, List<ReceivedToolResult>> { toolCalls ->
-        val (finishToolCalls, regularToolCalls) = toolCalls.partition { it.tool == finishTool.name }
-
-        // Execute finish tool
-        val finishToolResult = finishToolCalls.firstOrNull()?.let { toolCall ->
-            executeFinishTool<Output, OutputTransformed>(toolCall, finishTool)
-        }
+    val callToolsHacked by node<ToolCalls, ReceivedToolResults> { message ->
+        val (finishToolCalls, regularToolCalls) = message.toolCalls.partition { it.tool == finishTool.name }
 
         // Execute regular tools
         val regularToolsResults = if (parallelTools) {
@@ -689,18 +695,23 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
             }
         }
 
-        buildList {
-            finishToolResult?.let { add(it) }
-            addAll(regularToolsResults)
+        // Execute finish tool
+        val finishToolResult = finishToolCalls.firstOrNull()?.let { toolCall ->
+            executeFinishTool(toolCall, finishTool)
         }
+
+        ReceivedToolResults(
+            buildList {
+                finishToolResult?.let { add(it) }
+                addAll(regularToolsResults)
+            }
+        )
     }
 
-    @OptIn(DetachedPromptExecutorAPI::class)
-    val handleAssistantMessage by node<Message.Assistant, Message.Assistant> { response ->
+    @OptIn(DetachedPromptExecutorAPI::class) val handleAssistantMessage by node<String, Message.Assistant> { response ->
         if (llm.model.supports(LLMCapability.ToolChoice)) {
             error(
-                "Subgraph with task must always call tools, but no ${MessagePart.Tool.Call::class.simpleName} was generated, " +
-                    "got instead: ${response::class.simpleName}"
+                "Subgraph with task must always call tools, but no ${MessagePart.Tool.Call::class.simpleName} was generated, " + "got instead: $response"
             )
         }
 
@@ -709,9 +720,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
 
         if (currentAskAssistantToFinishCounter > maxAssistantResponses) {
             error(
-                "Unable to finish subgraph with task. Reason: the model '${llm.model.id}' does not support tool choice, " +
-                    "and was not able to call `${finishTool.name}` tool after " +
-                    "<$maxAssistantResponses> attempts."
+                "Unable to finish subgraph with task. Reason: the model '${llm.model.id}' does not support tool choice, " + "and was not able to call `${finishTool.name}` tool after " + "<$maxAssistantResponses> attempts."
             )
         }
 
@@ -719,8 +728,7 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
             // append a new message to the history with feedback:
             appendPrompt {
                 user(
-                    "# DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.\n" +
-                        "## IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!"
+                    "# DO NOT CHAT WITH ME DIRECTLY! CALL TOOLS, INSTEAD.\n" + "## IF YOU HAVE FINISHED, CALL `${finishTool.name}` TOOL!"
                 )
             }
 
@@ -733,9 +741,9 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
     edge(setupTask forwardTo nodeCallLLM)
     edge(nodeCallLLM forwardTo nodeDecide)
 
-    edge(nodeDecide forwardTo callToolsHacked onToolCall { true } getToolCalls { true })
+    edge(nodeDecide forwardTo callToolsHacked onToolCalls { true })
 
-    edge(nodeDecide forwardTo handleAssistantMessage onNoneToolCall { true })
+    edge(nodeDecide forwardTo handleAssistantMessage onTextParts { true })
 
     edge(handleAssistantMessage forwardTo nodeDecide)
 
@@ -743,19 +751,19 @@ public fun <Input, Output, OutputTransformed> AIAgentSubgraphBuilderBase<Input, 
     edge(
         nodeDecide forwardTo nodeFinish transformed {
             throw IllegalStateException(
-                "Unhandled response from LLM. Subgraph with task must always call tools, " +
-                    "but no ${MessagePart.Tool.Call::class.simpleName} was generated, got instead: $it"
+                "Unhandled response from LLM. Subgraph with task must always call tools, " + "but no ${MessagePart.Tool.Call::class.simpleName} was generated, got instead: $it"
             )
         }
     )
 
     edge(
         callToolsHacked forwardTo finalizeTask
-            onCondition { toolResults ->
-                toolResults.firstOrNull()
-                    ?.let { it.tool == finishTool.name && it.resultKind is ToolResultKind.Success } == true
+            onCondition {
+                it.toolResults.any { toolResult ->
+                    toolResult.tool == finishTool.name &&
+                        toolResult.resultKind is ToolResultKind.Success
+                }
             }
-            transformed { toolsResults -> toolsResults.first() }
     )
 
     callToolsHacked then sendToolsResults then nodeDecide
@@ -812,8 +820,7 @@ internal suspend fun <Output, OutputTransformed> AIAgentContext.executeFinishToo
         return ReceivedToolResult(
             id = toolCall.id,
             tool = finishTool.name,
-            toolArgs = runCatching { toolCall.argsJson.toKoogJSONObject() }
-                .getOrElse { JSONObject(emptyMap()) },
+            toolArgs = runCatching { toolCall.argsJson.toKoogJSONObject() }.getOrElse { JSONObject(emptyMap()) },
             toolDescription = toolDescription,
             output = "Failed to execute '${finishTool.name}' with error: ${e.message}'",
             resultKind = ToolResultKind.Failure(e),

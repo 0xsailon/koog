@@ -58,9 +58,9 @@ class FunctionalAIAgentTest {
                 var responses = requestLLM(inputParam)
 
                 while (responses.parts.any { it is MessagePart.Tool.Call }) {
-                    val tools = extractToolCalls(responses)
+                    val tools = getToolCalls(responses)
                     val results = executeTools(tools)
-                    responses = sendMultipToolResults(results)
+                    responses = sendToolResults(results)
                 }
 
                 responses.parts.filterIsInstance<MessagePart.Text>().first().text
@@ -142,9 +142,9 @@ class FunctionalAIAgentTest {
                 var responses = requestLLM(inputParam)
 
                 while (responses.parts.any { it is MessagePart.Tool.Call }) {
-                    val tools = extractToolCalls(responses)
+                    val tools = getToolCalls(responses)
                     val results = executeTools(tools)
-                    responses = sendMultipToolResults(results)
+                    responses = sendToolResults(results)
                 }
 
                 responses.parts.filterIsInstance<MessagePart.Text>().first().text

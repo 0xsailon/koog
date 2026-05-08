@@ -72,7 +72,7 @@ class AIAgentEdgesTest {
                     )
                 }
             )
-            edge(node1 forwardTo nodeFinish onToolCall { true } transformed { "Done" })
+            edge(node1 forwardTo nodeFinish onToolCalls { true } transformed { "Done" })
         }
 
         checkStrategy(agentStrategy)
@@ -92,58 +92,7 @@ class AIAgentEdgesTest {
                     )
                 }
             )
-            edge(node1 forwardTo nodeFinish onToolCall { it.tool == "tool" } transformed { "Done" })
-        }
-
-        checkStrategy(agentStrategy)
-    }
-
-    @Test
-    fun testEdgeOnNoneToolCall() = runTest {
-        val agentStrategy = strategy<String, String>("test") {
-            edge(nodeStart forwardTo node1 transformed { Message.Assistant("", ResponseMetaInfo.Empty) })
-            edge(node1 forwardTo nodeFinish onNoneToolCall { true } transformed { "Done" })
-        }
-
-        checkStrategy(agentStrategy)
-    }
-
-    @Test
-    fun testEdgeOnNoneToolCallWithCondition() = runTest {
-        val agentStrategy = strategy<String, String>("test") {
-            edge(
-                nodeStart forwardTo node1 transformed {
-                    Message.Assistant(
-                        parts = listOf(
-                            MessagePart.Text("some message"),
-                            MessagePart.Tool.Call("id", "tool", buildJsonObject { put("arg", JsonPrimitive(0)) })
-                        ),
-                        ResponseMetaInfo.Empty
-                    )
-                }
-            )
-            edge(node1 forwardTo nodeFinish onNoneToolCall { it.tool == "another_tool" } transformed { "Done" })
-        }
-
-        checkStrategy(agentStrategy)
-    }
-
-    @Test
-    fun testTwoEdgesOnToolCallWithCondition() = runTest {
-        val agentStrategy = strategy<String, String>("test") {
-            edge(
-                nodeStart forwardTo node1 transformed {
-                    Message.Assistant(
-                        parts = listOf(
-                            MessagePart.Text("some message"),
-                            MessagePart.Tool.Call("id", "tool", buildJsonObject { put("arg", JsonPrimitive(0)) })
-                        ),
-                        ResponseMetaInfo.Empty
-                    )
-                }
-            )
-            edge(node1 forwardTo nodeFinish onToolCall { it.tool == "another_tool" } transformed { "Failed" })
-            edge(node1 forwardTo nodeFinish onNoneToolCall { it.tool == "another_tool" } transformed { "Done" })
+            edge(node1 forwardTo nodeFinish onToolCalls { it.tool == "tool" } transformed { "Done" })
         }
 
         checkStrategy(agentStrategy)

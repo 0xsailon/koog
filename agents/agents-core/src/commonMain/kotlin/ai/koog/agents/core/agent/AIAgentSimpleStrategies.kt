@@ -4,12 +4,11 @@ package ai.koog.agents.core.agent
 
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.onNoneToolCall
-import ai.koog.agents.core.dsl.extension.onToolCall
-import ai.koog.agents.core.dsl.extension.toText
-import ai.koog.agents.core.dsl.extension.toUserMessage
+import ai.koog.agents.core.dsl.extension.onTextParts
+import ai.koog.agents.core.dsl.extension.onToolCalls
 import kotlin.jvm.JvmName
 import kotlin.jvm.JvmOverloads
 
@@ -31,7 +30,8 @@ public fun singleRunStrategy(parallelTools: Boolean = false): AIAgentGraphStrate
     val nodeLLMRequest by nodeLLMRequest()
     val nodeExecuteTool by nodeExecuteTools(parallel = parallelTools)
 
-    edge(nodeStart forwardTo nodeLLMRequest toUserMessage { it })
-    edge(nodeLLMRequest forwardTo nodeExecuteTool onToolCall { true })
-    edge(nodeLLMRequest forwardTo nodeFinish onNoneToolCall { true } toText { it })
+    edge(nodeStart forwardTo nodeLLMRequest asUserMessage { it })
+    edge(nodeLLMRequest forwardTo nodeExecuteTool onToolCalls { true })
+    edge(nodeLLMRequest forwardTo nodeFinish onTextParts { true })
+    edge(nodeExecuteTool forwardTo nodeLLMRequest)
 }

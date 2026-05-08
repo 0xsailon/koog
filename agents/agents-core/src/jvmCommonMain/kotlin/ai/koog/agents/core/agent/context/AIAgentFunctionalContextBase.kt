@@ -397,7 +397,7 @@ public actual abstract class AIAgentFunctionalContextBase<Pipeline : AIAgentPipe
         results: List<ReceivedToolResult>,
         executorService: ExecutorService? = null
     ): Message.Assistant = config.runOnLLMDispatcher(executorService) {
-        sendMultipToolResults(results)
+        sendToolResults(results)
     }
 
     /**

@@ -27,6 +27,7 @@ import ai.koog.prompt.structure.StructureDefinition
 import ai.koog.prompt.structure.StructuredRequestConfig
 import ai.koog.prompt.structure.StructuredResponse
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 
 /**
  * A pass-through node that does nothing and returns input as output
@@ -441,11 +442,10 @@ public suspend fun <T> AIAgentGraphContextBase.llmCompressHistoryImpl(
 
 private suspend fun executeTools(
     environment: AIAgentEnvironment,
-    message: Message,
+    toolCalls: List<MessagePart.Tool.Call>,
     parallel: Boolean
 ): List<ReceivedToolResult> {
     return buildList {
-        val toolCalls = message.parts.filterIsInstance<MessagePart.Tool.Call>()
         if (parallel) {
             addAll(environment.executeTools(toolCalls))
         } else {
@@ -457,38 +457,53 @@ private suspend fun executeTools(
     }
 }
 
+@Serializable
+public data class ToolCalls(
+    val toolCalls: List<MessagePart.Tool.Call>
+)
+
+@Serializable
+public data class ToolResults(
+    val toolCalls: List<MessagePart.Tool.Result>
+)
+
+@Serializable
+public data class ReceivedToolResults(
+    val toolResults: List<ReceivedToolResult>
+)
+
 @AIAgentBuilderDslMarker
 public fun nodeExecuteTools(
     name: String? = null,
     parallel: Boolean = false,
-): AIAgentNodeDelegate<Message.Assistant, Message.User> =
-    node(name) { message ->
-        val parts = executeTools(environment, message, parallel).map { it.toMessagePart() }
+): AIAgentNodeDelegate<ToolCalls, Message.User> =
+    node(name) {
+        val parts = executeTools(environment, it.toolCalls, parallel)
         llm.writeSession {
-            userMessage(parts)
+            userMessage(parts.map { toolResult -> toolResult.toMessagePart() })
         }
     }
 
 // Region ReceivedToolResult
 
 @AIAgentBuilderDslMarker
-public fun nodeExecuteToolsAndGetReceivedResults(
+public fun nodeExecuteToolsAndGetResults(
     name: String? = null,
     parallel: Boolean = false,
-): AIAgentNodeDelegate<Message.Assistant, List<ReceivedToolResult>> =
-    node(name) { message ->
-        executeTools(environment, message, parallel)
+): AIAgentNodeDelegate<ToolCalls, ReceivedToolResults> =
+    node(name) {
+        ReceivedToolResults(executeTools(environment, it.toolCalls, parallel))
     }
 
 @AIAgentBuilderDslMarker
 public fun nodeSendToolReceivedResults(
     name: String? = null
-): AIAgentNodeDelegate<List<ReceivedToolResult>, Message.Assistant> =
-    node(name) { toolResults ->
+): AIAgentNodeDelegate<ReceivedToolResults, Message.Assistant> =
+    node(name) {
         llm.writeSession {
             appendPrompt {
                 user {
-                    toolResults.forEach { toolResult(it.toMessagePart()) }
+                    it.toolResults.forEach { toolResult -> toolResult(toolResult.toMessagePart()) }
                 }
             }
 
@@ -499,12 +514,12 @@ public fun nodeSendToolReceivedResults(
 @AIAgentBuilderDslMarker
 public fun nodeSendToolReceivedResultsOnlyCallingTools(
     name: String? = null,
-): AIAgentNodeDelegate<List<ReceivedToolResult>, Message.Assistant> =
-    node(name) { toolResults ->
+): AIAgentNodeDelegate<ReceivedToolResults, Message.Assistant> =
+    node(name) {
         llm.writeSession {
             appendPrompt {
                 user {
-                    toolResults.forEach { toolResult(it.toMessagePart()) }
+                    it.toolResults.forEach { toolResult -> toolResult(toolResult.toMessagePart()) }
                 }
             }
             requestLLMOnlyCallingTools()
@@ -514,12 +529,12 @@ public fun nodeSendToolReceivedResultsOnlyCallingTools(
 @AIAgentBuilderDslMarker
 public fun nodeSendToolReceivedResultsWithoutTools(
     name: String? = null,
-): AIAgentNodeDelegate<List<ReceivedToolResult>, Message.Assistant> =
-    node(name) { toolResults ->
+): AIAgentNodeDelegate<ReceivedToolResults, Message.Assistant> =
+    node(name) {
         llm.writeSession {
             appendPrompt {
                 user {
-                    toolResults.forEach { toolResult(it.toMessagePart()) }
+                    it.toolResults.forEach { toolResult -> toolResult(toolResult.toMessagePart()) }
                 }
             }
             requestLLMWithoutTools()
@@ -530,12 +545,12 @@ public fun nodeSendToolReceivedResultsWithoutTools(
 public fun nodeSendToolReceivedResultsForceOneTool(
     name: String? = null,
     tool: ToolDescriptor
-): AIAgentNodeDelegate<List<ReceivedToolResult>, Message.Assistant> =
-    node(name) { toolResults ->
+): AIAgentNodeDelegate<ReceivedToolResults, Message.Assistant> =
+    node(name) {
         llm.writeSession {
             appendPrompt {
                 user {
-                    toolResults.forEach { toolResult(it.toMessagePart()) }
+                    it.toolResults.forEach { toolResult -> toolResult(toolResult.toMessagePart()) }
                 }
             }
             requestLLMForceOneTool(tool)
@@ -545,12 +560,12 @@ public fun nodeSendToolReceivedResultsForceOneTool(
 @AIAgentBuilderDslMarker
 public fun nodeSendToolReceivedResultsMultipleChoices(
     name: String? = null,
-): AIAgentNodeDelegate<List<ReceivedToolResult>, LLMChoice> =
-    node(name) { toolResults ->
+): AIAgentNodeDelegate<ReceivedToolResults, LLMChoice> =
+    node(name) {
         llm.writeSession {
             appendPrompt {
                 user {
-                    toolResults.forEach { toolResult(it.toMessagePart()) }
+                    it.toolResults.forEach { toolResult -> toolResult(toolResult.toMessagePart()) }
                 }
             }
             requestLLMMultipleChoices()
@@ -618,40 +633,40 @@ public suspend fun <TResult, ToolArg> AIAgentGraphContextBase.executeSingleToolI
     toolResult
 }
 
-// /**
-// * Creates a node that sets up a structured output for an AI agent subgraph.
-// *
-// * The method defines a new node with a configurable structured output schema
-// * that will be applied during the AI agent's message processing. The schema
-// * is determined by the given configuration.
-// *
-// * @param name An optional name for the node. If null, a default name will be assigned.
-// * @param config The configuration that defines the structured output format and schema.
-// * @return An instance of [AIAgentNodeDelegate] representing the constructed node.
-// */
-// @AIAgentBuilderDslMarker
-// public inline fun <reified TInput, T> nodeSetStructuredOutput(
-//    name: String? = null,
-//    config: StructuredRequestConfig<T>,
-// ): AIAgentNodeDelegate<TInput, TInput> =
-//    node(name) { message ->
-//        setStructuredOutputImpl(config, message)
-//    }
-//
-// /**
-// * [InternalAgentsApi] method. Sets up structured output for an AI agent subgraph.
-// *
-// * @param T The type of the structured output.
-// * @param TInput The type of the input message.
-// * @param config The configuration used to update the agent's prompt in the context.
-// * @param message The input message to be processed and returned.
-// * @return The input message after processing.
-// */
-// @InternalAgentsApi
-// public suspend fun <T, TInput> AIAgentGraphContextBase.setStructuredOutputImpl(
-//    config: StructuredRequestConfig<T>,
-//    message: TInput
-// ): TInput = llm.writeSession {
-//    prompt = config.updatePrompt(model, prompt)
-//    message
-// }
+/**
+ * Creates a node that sets up a structured output for an AI agent subgraph.
+ *
+ * The method defines a new node with a configurable structured output schema
+ * that will be applied during the AI agent's message processing. The schema
+ * is determined by the given configuration.
+ *
+ * @param name An optional name for the node. If null, a default name will be assigned.
+ * @param config The configuration that defines the structured output format and schema.
+ * @return An instance of [AIAgentNodeDelegate] representing the constructed node.
+ */
+@AIAgentBuilderDslMarker
+public inline fun <reified TInput, T> nodeSetStructuredOutput(
+    name: String? = null,
+    config: StructuredRequestConfig<T>,
+): AIAgentNodeDelegate<TInput, TInput> =
+    node(name) { message ->
+        setStructuredOutputImpl(config, message)
+    }
+
+/**
+ * [InternalAgentsApi] method. Sets up structured output for an AI agent subgraph.
+ *
+ * @param T The type of the structured output.
+ * @param TInput The type of the input message.
+ * @param config The configuration used to update the agent's prompt in the context.
+ * @param message The input message to be processed and returned.
+ * @return The input message after processing.
+ */
+@InternalAgentsApi
+public suspend fun <T, TInput> AIAgentGraphContextBase.setStructuredOutputImpl(
+    config: StructuredRequestConfig<T>,
+    message: TInput
+): TInput = llm.writeSession {
+    prompt = config.updatePrompt(model, prompt)
+    message
+}

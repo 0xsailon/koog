@@ -14,13 +14,13 @@ import ai.koog.agents.core.agent.execution.DEFAULT_AGENT_PATH_SEPARATOR
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.builder.subgraph
+import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeDoNothing
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestWithoutTools
-import ai.koog.agents.core.dsl.extension.onToolCall
-import ai.koog.agents.core.dsl.extension.toText
-import ai.koog.agents.core.dsl.extension.toUserMessage
+import ai.koog.agents.core.dsl.extension.onTextParts
+import ai.koog.agents.core.dsl.extension.onToolCalls
 import ai.koog.agents.core.environment.AIAgentEnvironment
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.feature.config.FeatureConfig
@@ -530,8 +530,8 @@ class AIAgentPipelineTest {
             val llmCallWithoutTools by nodeLLMRequestWithoutTools(nodeLLMCallWithoutToolsName)
             val llmCall by nodeLLMRequest(nodeLLMCall)
 
-            edge(nodeStart forwardTo llmCallWithoutTools toUserMessage { testLLMResponse })
-            edge(llmCallWithoutTools forwardTo llmCall toUserMessage { llmCallWithToolsResponse })
+            edge(nodeStart forwardTo llmCallWithoutTools asUserMessage { testLLMResponse })
+            edge(llmCallWithoutTools forwardTo llmCall asUserMessage { llmCallWithToolsResponse })
             edge(llmCall forwardTo nodeFinish transformed { agentOutput })
         }
 
@@ -605,9 +605,9 @@ class AIAgentPipelineTest {
             val nodeSendInput by nodeLLMRequest()
             val toolCallNode by nodeExecuteTools(nodeToolCallName)
 
-            edge(nodeStart forwardTo nodeSendInput toUserMessage { it })
-            edge(nodeSendInput forwardTo toolCallNode onToolCall { true })
-            edge(toolCallNode forwardTo nodeFinish toText { it })
+            edge(nodeStart forwardTo nodeSendInput asUserMessage { it })
+            edge(nodeSendInput forwardTo toolCallNode onToolCalls { true })
+            edge(toolCallNode forwardTo nodeFinish onTextParts { true })
         }
 
         // Use custom tool registry with plus tool to be called
@@ -841,8 +841,8 @@ class AIAgentPipelineTest {
             val llmCallWithoutTools by nodeLLMRequestWithoutTools(nodeLLMCallWithoutToolsName)
             val llmCall by nodeLLMRequest(nodeLLMCallName)
 
-            edge(nodeStart forwardTo llmCallWithoutTools toUserMessage { testLLMResponse })
-            edge(llmCallWithoutTools forwardTo llmCall toUserMessage { llmCallWithToolsResponse })
+            edge(nodeStart forwardTo llmCallWithoutTools asUserMessage { testLLMResponse })
+            edge(llmCallWithoutTools forwardTo llmCall asUserMessage { llmCallWithToolsResponse })
             edge(llmCall forwardTo nodeFinish transformed { agentOutput })
         }
 
@@ -898,13 +898,13 @@ class AIAgentPipelineTest {
         val strategyName = "test-strategy"
         val nodeToolCallName = "tool-call-node"
 
-        val strategy = strategy(strategyName) {
+        val strategy = strategy<String, String>(strategyName) {
             val nodeSendInput by nodeLLMRequest()
             val toolCallNode by nodeExecuteTools(nodeToolCallName)
 
-            edge(nodeStart forwardTo nodeSendInput toUserMessage { it })
-            edge(nodeSendInput forwardTo toolCallNode onToolCall { true })
-            edge(toolCallNode forwardTo nodeFinish toText { it })
+            edge(nodeStart forwardTo nodeSendInput asUserMessage { it })
+            edge(nodeSendInput forwardTo toolCallNode onToolCalls { true })
+            edge(toolCallNode forwardTo nodeFinish onTextParts { true })
         }
 
         val toolRegistry = ToolRegistry {
@@ -977,7 +977,7 @@ class AIAgentPipelineTest {
 
         var isExecuted = false
 
-        val strategy = strategy(strategyName) {
+        val strategy = strategy<String, String>(strategyName) {
             val nodeRoot by node<String, String>(nodeRootName) { it }
             val nodeExecute by node<String, String>(nodeExecuteName) {
                 isExecuted = true

@@ -1,6 +1,7 @@
 package ai.koog.agents.features.chathistory.jdbc
 
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.utils.time.KoogClock
@@ -107,13 +108,13 @@ abstract class AbstractJdbcChatHistoryProviderTest {
             Message.System("System prompt", RequestMetaInfo.create(KoogClock.System)),
             Message.User("User input", RequestMetaInfo.create(KoogClock.System)),
             Message.Assistant("Assistant response", ResponseMetaInfo.create(KoogClock.System)),
-            Message.Tool.Call(
+            MessagePart.Tool.Call(
                 id = "call-1",
                 tool = "searchTool",
                 content = """{"query": "test"}""",
                 metaInfo = ResponseMetaInfo.create(KoogClock.System)
             ),
-            Message.Tool.Result(
+            MessagePart.Tool.Result(
                 id = "call-1",
                 tool = "searchTool",
                 content = """{"result": "found"}""",

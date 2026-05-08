@@ -6,12 +6,12 @@ import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.agent.entity.createStorageKey
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.onToolCall
+import ai.koog.agents.core.dsl.extension.onTextParts
+import ai.koog.agents.core.dsl.extension.onToolCalls
 import ai.koog.agents.core.dsl.extension.onToolResults
-import ai.koog.agents.core.dsl.extension.toText
-import ai.koog.agents.core.dsl.extension.toUserMessage
 import ai.koog.prompt.message.Message
 import kotlin.jvm.JvmName
 import kotlin.jvm.JvmOverloads
@@ -28,26 +28,27 @@ public fun chatAgentStrategy(): AIAgentGraphStrategy<String, String> = strategy(
     val nodeLLMRequest by nodeLLMRequest("sendInput")
     val nodeExecuteTools by nodeExecuteTools("nodeExecuteTool")
 
-    val giveFeedbackToCallTools by node<Message.Assistant, String> { input ->
+    val giveFeedbackToCallTools by node<String, String> { input ->
         llm.writeSession {
-            "Don't chat with plain text! Call one of the available tools, instead: ${tools.joinToString(", ") {
-                it.name
-            }}"
+            "Don't chat with plain text! Call one of the available tools, instead: ${
+                tools.joinToString(", ") {
+                    it.name
+                }
+            }"
         }
     }
 
-    edge(nodeStart forwardTo nodeLLMRequest toUserMessage { it })
+    edge(nodeStart forwardTo nodeLLMRequest asUserMessage { it })
 
-    edge(nodeLLMRequest forwardTo nodeExecuteTools onToolCall { true })
-//    edge(nodeExecuteTools forwardTo giveFeedbackToCallTools onToolCalls { false })
-    edge(giveFeedbackToCallTools forwardTo nodeLLMRequest toUserMessage { it })
-
+    edge(nodeLLMRequest forwardTo nodeExecuteTools onToolCalls { true })
+    edge(nodeLLMRequest forwardTo giveFeedbackToCallTools onTextParts { true })
     edge(
         nodeExecuteTools forwardTo nodeFinish
-            onToolResults { it.any { tc -> tc.tool == "__exit__" } }
+            onToolResults { it.tool == "__exit__" }
             transformed { "Chat finished" }
     )
     edge(nodeExecuteTools forwardTo nodeLLMRequest)
+    edge(giveFeedbackToCallTools forwardTo nodeLLMRequest asUserMessage { it })
 }
 
 /**
@@ -139,14 +140,10 @@ public fun reActStrategy(
     }
 
     edge(nodeStart forwardTo nodeSetup)
-    edge(nodeSetup forwardTo nodeRequestLLMReason toUserMessage { "$it\n$reasoningPrompt" })
+    edge(nodeSetup forwardTo nodeRequestLLMReason asUserMessage { "$it\n$reasoningPrompt" })
     edge(nodeRequestLLMReason forwardTo nodeRequestLLMWithTools)
-    edge(nodeRequestLLMWithTools forwardTo nodeExecuteTools onToolCall { true })
-    edge(
-        nodeRequestLLMWithTools forwardTo nodeFinish
-            onToolCall { false }
-            toText { it }
-    )
+    edge(nodeRequestLLMWithTools forwardTo nodeExecuteTools onToolCalls { true })
+    edge(nodeRequestLLMWithTools forwardTo nodeFinish onTextParts { true })
 }
 
 // /**

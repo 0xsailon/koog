@@ -4,12 +4,12 @@ import ai.koog.agents.core.agent.context.DetachedPromptExecutorAPI
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.getToolCall
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
@@ -173,7 +173,7 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
                 val sendToolResult by nodeLLMSendToolResult("Send Tool Result")
 
                 edge(nodeStart forwardTo llmRequest)
-                edge(llmRequest forwardTo executeTool getToolCall { true })
+                edge(llmRequest forwardTo executeTool onToolCall { true })
                 edge(executeTool forwardTo sendToolResult)
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             }
@@ -307,9 +307,9 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
                 val sendToolResult2 by nodeLLMSendToolResult("Send Tool Result 2")
 
                 edge(nodeStart forwardTo llmRequest)
-                edge(llmRequest forwardTo executeTool1 getToolCall { true })
+                edge(llmRequest forwardTo executeTool1 onToolCall { true })
                 edge(executeTool1 forwardTo sendToolResult1)
-                edge(sendToolResult1 forwardTo executeTool2 getToolCall { true })
+                edge(sendToolResult1 forwardTo executeTool2 onToolCall { true })
                 edge(sendToolResult1 forwardTo nodeFinish onAssistantMessage { true })
                 edge(executeTool2 forwardTo sendToolResult2)
                 edge(sendToolResult2 forwardTo nodeFinish transformed { input -> input.content })
@@ -663,7 +663,7 @@ abstract class TraceStructureTestBase(private val openTelemetryConfigurator: Ope
                 val sendToolResult by nodeLLMSendToolResult("Send Tool Result")
 
                 edge(nodeStart forwardTo llmRequest)
-                edge(llmRequest forwardTo executeTool getToolCall { true })
+                edge(llmRequest forwardTo executeTool onToolCall { true })
                 edge(executeTool forwardTo sendToolResult)
                 edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
             }

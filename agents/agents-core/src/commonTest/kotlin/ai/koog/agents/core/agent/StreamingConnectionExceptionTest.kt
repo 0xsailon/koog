@@ -2,8 +2,8 @@ package ai.koog.agents.core.agent
 
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestStreaming
-import ai.koog.agents.core.dsl.extension.toUserMessage
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.features.eventHandler.feature.EventHandler
@@ -338,7 +338,7 @@ class StreamingConnectionExceptionTest {
                 stream.collectText()
             }
 
-            edge(nodeStart forwardTo streamNode toUserMessage { it })
+            edge(nodeStart forwardTo streamNode asUserMessage { it })
             edge(streamNode forwardTo collectNode)
             edge(collectNode forwardTo nodeFinish)
         }

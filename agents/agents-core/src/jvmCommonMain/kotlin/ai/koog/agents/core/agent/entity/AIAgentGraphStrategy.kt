@@ -57,11 +57,11 @@ private fun f() {
             .build()
     )
 
-    val subg = AIAgentSubgraph.builder()
+    val subgraph = AIAgentSubgraph.builder()
         .withInput(String::class.java)
         .withVerification { "tell me" }
         .build()
 
     graph.edge(graph.nodeStart, graph.nodeFinish)
-    graph.edge(graph.nodeStart, subg)
+    graph.edge(graph.nodeStart, subgraph)
 }

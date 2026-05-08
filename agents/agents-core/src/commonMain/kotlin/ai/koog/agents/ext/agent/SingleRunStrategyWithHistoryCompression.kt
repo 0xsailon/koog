@@ -3,13 +3,12 @@ package ai.koog.agents.ext.agent
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
+import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.onNoneToolCall
-import ai.koog.agents.core.dsl.extension.onToolCall
-import ai.koog.agents.core.dsl.extension.toText
-import ai.koog.agents.core.dsl.extension.toUserMessage
+import ai.koog.agents.core.dsl.extension.onTextParts
+import ai.koog.agents.core.dsl.extension.onToolCalls
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.message.Message
@@ -53,11 +52,10 @@ public fun singleRunStrategyWithHistoryCompression(
         retrievalModel = config.retrievalModel
     )
 
-    edge(nodeStart forwardTo nodeLLMRequest toUserMessage { it })
-
+    edge(nodeStart forwardTo nodeLLMRequest asUserMessage { it })
     edge(nodeExecuteTool forwardTo compressHistory onCondition { llm.readSession { config.isHistoryTooBig(prompt) } })
     edge(nodeExecuteTool forwardTo nodeLLMRequest onCondition { llm.readSession { !config.isHistoryTooBig(prompt) } })
     edge(compressHistory forwardTo nodeLLMRequest)
-    edge(nodeLLMRequest forwardTo nodeExecuteTool onToolCall { true })
-    edge(nodeLLMRequest forwardTo nodeFinish onNoneToolCall { true } toText { it })
+    edge(nodeLLMRequest forwardTo nodeExecuteTool onToolCalls { true })
+    edge(nodeLLMRequest forwardTo nodeFinish onTextParts { true })
 }

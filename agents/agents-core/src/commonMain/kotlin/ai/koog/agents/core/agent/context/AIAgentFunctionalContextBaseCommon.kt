@@ -79,31 +79,6 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     }
 
     /**
-     * Sends a message to a Large Language Model (LLM) and optionally allows the use of tools during the LLM interaction.
-     * The message becomes part of the current prompt, and the LLM's response is processed accordingly,
-     * either with or without tool integrations based on the provided parameters.
-     *
-     * @param message The content of the message to be sent to the LLM.
-     * @param allowToolCalls Specifies whether tool calls are allowed during the LLM interaction. Defaults to `true`.
-     */
-    public suspend fun requestLLM(
-        message: String,
-        allowToolCalls: Boolean = true
-    ): Message.Assistant {
-        return llm.writeSession {
-            appendPrompt {
-                user(message)
-            }
-
-            if (allowToolCalls) {
-                requestLLM()
-            } else {
-                requestLLMWithoutTools()
-            }
-        }
-    }
-
-    /**
      * Appends messages to the current LLM prompt without making an LLM request.
      * Corresponds to [nodeAppendPrompt].
      *
@@ -111,6 +86,32 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      */
     public suspend fun appendPrompt(body: PromptBuilder.() -> Unit) {
         llm.writeSession { appendPrompt { body() } }
+    }
+
+    // ================
+    // LLM Request string nodes
+    // ================
+
+    //region LLMRequest
+
+    /**
+     * Sends a message to a Large Language Model (LLM) and optionally allows the use of tools during the LLM interaction.
+     * The message becomes part of the current prompt, and the LLM's response is processed accordingly,
+     * either with or without tool integrations based on the provided parameters.
+     * Corresponds to [nodeLLMRequestWithUserText].
+     *
+     * @param message The content of the message to be sent to the LLM.
+     */
+    public suspend fun requestLLM(
+        message: String,
+    ): Message.Assistant {
+        return llm.writeSession {
+            appendPrompt {
+                user(message)
+            }
+
+            requestLLM()
+        }
     }
 
     /**
@@ -127,168 +128,14 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
     }
 
     /**
-     * Executes the provided action if the given response is of type [Message.Assistant].
-     *
-     * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
-     * @param action A lambda function to execute if the response is an instance of [Message.Assistant].
-     */
-    public fun onTextPart(
-        response: Message.Assistant,
-        action: (MessagePart.Text) -> Unit
-    ) {
-        response.parts.firstOrNull { it is MessagePart.Text }?.let { action(it as MessagePart.Text) }
-    }
-
-    /**
-     * Executes the provided action if the given response is of type [Message.Assistant].
-     *
-     * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
-     * @param action A lambda function to execute if the response is an instance of [Message.Assistant].
-     */
-    public fun onMultipleTextMessage(
-        response: Message.Assistant,
-        action: (List<MessagePart.Text>) -> Unit
-    ) {
-        action(response.parts.filterIsInstance<MessagePart.Text>())
-    }
-
-    /**
-     * Invokes the provided action when multiple tool call messages are found within a given list of response messages.
-     * Filters the list of responses to include only instances of [Message.Tool.Call] and executes the action on the
-     * filtered list if it is not empty.
-     *
-     * @param response A list of response messages to be checked for tool call messages.
-     * @param action A lambda function to be executed with the list of filtered tool call messages, if any exist.
-     */
-    public fun onMultipleToolCalls(
-        response: Message.Assistant,
-        action: (List<MessagePart.Tool.Call>) -> Unit
-    ) {
-        response.parts.filterIsInstance<MessagePart.Tool.Call>().takeIf { it.isNotEmpty() }?.let {
-            action(it)
-        }
-    }
-
-    /**
-     * Extracts a list of tool call messages from a given list of response messages.
-     *
-     * @param response A list of response messages to filter, potentially containing various types of responses.
-     * @return A list of messages specifically representing tool calls, which are instances of [Message.Tool.Call].
-     */
-    public fun extractToolCalls(
-        response: Message.Assistant
-    ): List<MessagePart.Tool.Call> = response.parts.filterIsInstance<MessagePart.Tool.Call>()
-
-    /**
-     * Filters the provided list of response messages to include only assistant messages and,
-     * if the filtered list is not empty, performs the specified action with the filtered list.
-     *
-     * @param response A list of response messages to be processed. Only those of type [Message.Assistant] will be considered.
-     * @param action A lambda function to execute on the list of assistant messages if the filtered list is not empty.
-     */
-    public fun onMultipleAssistantMessages(
-        response: List<Message.Assistant>,
-        action: (List<Message.Assistant>) -> Unit
-    ) {
-        response.filterIsInstance<Message.Assistant>().takeIf { it.isNotEmpty() }?.let {
-            action(it)
-        }
-    }
-
-    /**
-     * Retrieves the latest token usage from the prompt within the LLM session.
-     *
-     * @return The latest token usage information as an integer.
-     */
-    public suspend fun latestTokenUsage(): Int {
-        return llm.readSession { prompt.latestTokenUsage }
-    }
-
-    /**
-     * Sends a structured request to the Large Language Model (LLM) and processes the response.
-     *
-     * @param message The input message to be sent to the LLM.
-     * @param examples An optional list of example objects used to guide the model's structured response generation.
-     * @param fixingParser An optional parser to correct or validate the structured response.
-     * @return A [Result] containing a [StructuredResponse] of the requested type.
-     */
-    public suspend inline fun <reified T> requestLLMStructured(
-        message: String,
-        examples: List<T> = emptyList(),
-        fixingParser: StructureFixingParser? = null
-    ): Result<StructuredResponse<T>> = requestLLMStructured(message, serializer<T>(), examples, fixingParser)
-
-    @PublishedApi
-    internal suspend fun <T> requestLLMStructured(
-        message: String,
-        serializer: KSerializer<T>,
-        examples: List<T> = emptyList(),
-        fixingParser: StructureFixingParser? = null
-    ): Result<StructuredResponse<T>> {
-        return llm.writeSession {
-            appendPrompt {
-                user(message)
-            }
-
-            requestLLMStructured(
-                serializer,
-                examples,
-                fixingParser
-            )
-        }
-    }
-
-    /**
-     * Sends a message to a Large Language Model (LLM) and streams the LLM response.
-     * The message becomes part of the current prompt, and the LLM's response is streamed as it's generated.
+     * Sends a string message to the LLM without tool calls.
+     * Corresponds to [nodeLLMRequestOnlyCallingToolsWithUserText].
      *
      * @param message The content of the message to be sent to the LLM.
-     * @param structureDefinition Optional structure to guide the LLM response.
-     * @return A flow of [StreamFrame] objects from the LLM response.
-     */
-    public suspend fun requestLLMStreaming(
-        message: String,
-        structureDefinition: StructureDefinition? = null
-    ): Flow<StreamFrame> {
-        return llm.writeSession {
-            updatePrompt {
-                user(message)
-            }
-
-            requestLLMStreaming(structureDefinition)
-        }
-    }
-
-    /**
-     * Sends a message to a Large Language Model (LLM) and gets multiple LLM responses with tool calls enabled.
-     * The message becomes part of the current prompt, and multiple responses from the LLM are collected.
-     *
-     * @param message The content of the message to be sent to the LLM.
-     * @return A list of LLM responses.
-     */
-    public suspend fun requestLLM(message: String): Message.Assistant {
-        return llm.writeSession {
-            appendPrompt {
-                user(message)
-            }
-
-            requestLLM()
-        }
-    }
-
-    /**
-     * Sends a message to a Large Language Model (LLM) that will only call tools without generating text responses.
-     * The message becomes part of the current prompt, and the LLM is instructed to only use tools.
-     *
-     * @param message The content of the message to be sent to the LLM.
-     * @return The LLM response containing tool calls.
      */
     public suspend fun requestLLMOnlyCallingTools(message: String): Message.Assistant {
         return llm.writeSession {
-            appendPrompt {
-                user(message)
-            }
-
+            appendPrompt { user(message) }
             requestLLMOnlyCallingTools()
         }
     }
@@ -335,6 +182,71 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         }
     }
 
+    // Region Streaming
+
+    /**
+     * Sends a message to a Large Language Model (LLM) and streams the LLM response.
+     * The message becomes part of the current prompt, and the LLM's response is streamed as it's generated.
+     *
+     * @param message The content of the message to be sent to the LLM.
+     * @param structureDefinition Optional structure to guide the LLM response.
+     * @return A flow of [StreamFrame] objects from the LLM response.
+     */
+    public suspend fun requestLLMStreaming(
+        message: String,
+        structureDefinition: StructureDefinition? = null
+    ): Flow<StreamFrame> {
+        return llm.writeSession {
+            appendPrompt {
+                user(message)
+            }
+
+            requestLLMStreaming(structureDefinition)
+        }
+    }
+
+    // Region Structured
+
+    /**
+     * Sends a structured request to the Large Language Model (LLM) and processes the response.
+     *
+     * @param message The input message to be sent to the LLM.
+     * @param examples An optional list of example objects used to guide the model's structured response generation.
+     * @param fixingParser An optional parser to correct or validate the structured response.
+     * @return A [Result] containing a [StructuredResponse] of the requested type.
+     */
+    public suspend inline fun <reified T> requestLLMStructured(
+        message: String,
+        examples: List<T> = emptyList(),
+        fixingParser: StructureFixingParser? = null
+    ): Result<StructuredResponse<T>> = requestLLMStructured(message, serializer<T>(), examples, fixingParser)
+
+    @PublishedApi
+    internal suspend fun <T> requestLLMStructured(
+        message: String,
+        serializer: KSerializer<T>,
+        examples: List<T> = emptyList(),
+        fixingParser: StructureFixingParser? = null
+    ): Result<StructuredResponse<T>> {
+        return llm.writeSession {
+            appendPrompt {
+                user(message)
+            }
+
+            requestLLMStructured(
+                serializer,
+                examples,
+                fixingParser
+            )
+        }
+    }
+
+    // ================
+    // LLM Request User nodes
+    // ================
+
+    //region LLMRequest
+
     /**
      * Sends a [Message.User] to the LLM and returns the response.
      * Corresponds to [nodeLLMRequest].
@@ -361,7 +273,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * Sends a [Message.User] to the LLM without allowing tool calls.
      * Corresponds to [nodeLLMRequestWithoutTools].
      */
-    public suspend fun requestLLMWithoutTools(message: Message.User): Message.Assistant {
+    public suspend fun requestLLMWithoutToolsWithUserText(message: Message.User): Message.Assistant {
         return llm.writeSession {
             appendPrompt { message(message) }
             requestLLMWithoutTools()
@@ -409,6 +321,8 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         }
     }
 
+    // Region Streaming
+
     /**
      * Sends a [Message.User] to the LLM and streams the response.
      * Corresponds to [nodeLLMRequestStreaming].
@@ -422,6 +336,8 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
             requestLLMStreaming(structureDefinition)
         }
     }
+
+    // Region Structured
 
     /**
      * Sends a [Message.User] to the LLM and returns a structured response.
@@ -476,6 +392,8 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         }
     }
 
+    // Region Moderate
+
     /**
      * Moderates a message using the LLM.
      * Corresponds to [nodeLLMModerateMessage].
@@ -499,6 +417,10 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         }
         return llm.promptExecutor.moderate(moderationPrompt, moderatingModel ?: currentModel)
     }
+
+    // ================
+    // Execute Tool nodes
+    // ================
 
     /**
      * Executes a tool call and returns the result.
@@ -553,7 +475,7 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
      * @param results The list of tool results to add to the prompt.
      * @return A list of LLM responses.
      */
-    public suspend fun sendMultipToolResults(
+    public suspend fun sendToolResults(
         results: List<ReceivedToolResult>
     ): Message.Assistant {
         return llm.writeSession {
@@ -695,6 +617,79 @@ public open class AIAgentFunctionalContextBaseCommon<Pipeline : AIAgentPipeline>
         llm.writeSession {
             replaceHistoryWithTLDR(strategy, preserveMemory)
         }
+    }
+
+    // ================
+    // Conditions
+    // ================
+
+    public suspend fun asUserMessage(text: String): Message.User {
+        return llm.writeSession {
+            userMessage(text)
+        }
+    }
+
+    public suspend fun asUserMessage(results: List<ReceivedToolResult>): Message.User {
+        return llm.writeSession {
+            userMessage(results.map { it.toMessagePart() })
+        }
+    }
+
+    /**
+     * Executes the provided action if the given response is of type [Message.Assistant].
+     *
+     * @param response The response message to evaluate, which may or may not be of type [Message.Assistant].
+     * @param action A lambda function to execute if the response is an instance of [Message.Assistant].
+     */
+    public fun onTextParts(
+        response: Message.Assistant,
+        action: (List<MessagePart.Text>) -> Unit
+    ) {
+        getTextParts(response).takeIf { it.isNotEmpty() }?.let { action(it) }
+    }
+
+    /**
+     * Invokes the provided action when multiple tool call messages are found within a given list of response messages.
+     * Filters the list of responses to include only instances of [Message.Tool.Call] and executes the action on the
+     * filtered list if it is not empty.
+     *
+     * @param response A list of response messages to be checked for tool call messages.
+     * @param action A lambda function to be executed with the list of filtered tool call messages, if any exist.
+     */
+    public fun onToolCalls(
+        response: Message.Assistant,
+        action: (List<MessagePart.Tool.Call>) -> Unit
+    ) {
+        getToolCalls(response).takeIf { it.isNotEmpty() }?.let { action(it) }
+    }
+
+    /**
+     * Extracts a list of tool call messages from a given list of response messages.
+     *
+     * @param response A list of response messages to filter, potentially containing various types of responses.
+     * @return A list of messages specifically representing tool calls, which are instances of [Message.Tool.Call].
+     */
+    public fun getToolCalls(
+        response: Message.Assistant
+    ): List<MessagePart.Tool.Call> = response.parts.filterIsInstance<MessagePart.Tool.Call>()
+
+    /**
+     * Extracts a list of tool call messages from a given list of response messages.
+     *
+     * @param response A list of response messages to filter, potentially containing various types of responses.
+     * @return A list of messages specifically representing tool calls, which are instances of [Message.Tool.Call].
+     */
+    public fun getTextParts(
+        response: Message.Assistant
+    ): List<MessagePart.Text> = response.parts.filterIsInstance<MessagePart.Text>()
+
+    /**
+     * Retrieves the latest token usage from the prompt within the LLM session.
+     *
+     * @return The latest token usage information as an integer.
+     */
+    public suspend fun latestTokenUsage(): Int {
+        return llm.readSession { prompt.latestTokenUsage }
     }
 
     /**

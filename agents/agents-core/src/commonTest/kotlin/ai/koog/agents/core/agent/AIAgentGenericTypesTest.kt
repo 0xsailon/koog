@@ -2,8 +2,8 @@ package ai.koog.agents.core.agent
 
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.asUserMessage
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.toUserMessage
 import ai.koog.agents.testing.tools.getMockExecutor
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.ollama.client.OllamaModels
@@ -35,7 +35,7 @@ class AIAgentGenericTypesTest {
 
             val callLLM by nodeLLMRequest()
 
-            edge(nodeStart forwardTo callLLM toUserMessage { input -> processInput(input) })
+            edge(nodeStart forwardTo callLLM asUserMessage { input -> processInput(input) })
             edge(callLLM forwardTo nodeFinish transformed { output -> processOutput(output) })
         }
 
@@ -69,7 +69,7 @@ class AIAgentGenericTypesTest {
 
             val callLLM by nodeLLMRequest()
 
-            edge(nodeStart forwardTo callLLM toUserMessage { input -> convertToString(input) })
+            edge(nodeStart forwardTo callLLM asUserMessage { input -> convertToString(input) })
             edge(callLLM forwardTo nodeFinish transformed { output -> parseResponse(output) })
         }
 

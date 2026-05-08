@@ -5,11 +5,11 @@ import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.node
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.getToolCall
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
 import ai.koog.agents.core.dsl.extension.onAssistantMessage
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.testing.feature.withTesting
 import ai.koog.agents.testing.tools.getMockExecutor
@@ -102,10 +102,10 @@ class MessageTokenizerTest {
             }
 
             edge(nodeStart forwardTo callLLM)
-            edge(callLLM forwardTo callTool getToolCall { true })
+            edge(callLLM forwardTo callTool onToolCall { true })
             edge(callLLM forwardTo checkTokens onAssistantMessage { true })
             edge(callTool forwardTo sendToolResul)
-            edge(sendToolResul forwardTo callTool getToolCall { true })
+            edge(sendToolResul forwardTo callTool onToolCall { true })
             edge(sendToolResul forwardTo checkTokens onAssistantMessage { true })
             edge(checkTokens forwardTo nodeFinish)
         }

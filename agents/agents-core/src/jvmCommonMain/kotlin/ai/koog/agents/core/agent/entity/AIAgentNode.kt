@@ -6,7 +6,10 @@ import ai.koog.agents.annotations.JavaAPI
 import ai.koog.agents.core.agent.context.AIAgentGraphContextBase
 import ai.koog.agents.core.annotation.InternalAgentsApi
 import ai.koog.agents.core.dsl.builder.AIAgentBuilderDslMarker
+import ai.koog.agents.core.dsl.extension.ReceivedToolResults
+import ai.koog.agents.core.dsl.extension.ToolCalls
 import ai.koog.agents.core.dsl.extension.nodeExecuteTools
+import ai.koog.agents.core.dsl.extension.nodeExecuteToolsAndGetResults
 import ai.koog.agents.core.dsl.extension.nodeLLMModerateMessage
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.agents.core.dsl.extension.nodeLLMRequestForceOneTool
@@ -249,8 +252,23 @@ public actual open class AIAgentNode<TInput, TOutput> internal actual constructo
         @JvmStatic
         public fun executeTools(
             name: String?,
-        ): AIAgentNodeBase<Message.Assistant, Message.User> {
+        ): AIAgentNodeBase<ToolCalls, Message.User> {
             val node by nodeExecuteTools(name)
+            return node
+        }
+
+        /**
+         * A node that executes all tool calls in the assistant message and appends results as a user message.
+         *
+         * @param name Optional node name, defaults to delegate's property name.
+         */
+        @JavaAPI
+        @JvmOverloads
+        @JvmStatic
+        public fun executeToolsAndGetResults(
+            name: String?,
+        ): AIAgentNodeBase<ToolCalls, ReceivedToolResults> {
+            val node by nodeExecuteToolsAndGetResults(name)
             return node
         }
 
